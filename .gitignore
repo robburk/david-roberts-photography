@@ -1,0 +1,20 @@
+.DS_Store
+Thumbs.db
+thumbs/
+*.heic
+*.HEIC
+index_backup_*.html
+/tmp/
+
+# Large source files — site uses optimised copies in assets/display/
+*.png
+/assets/photos/
+
+# Root-level original JPEGs (source files, not the display copies)
+/36F961F6-32FD-4757-A8C6-2A16B0CBD6A9.jpeg
+/444EDBFB-32FD-4757-A8C6-2A16B0CBD6A9.jpeg
+/49B0B44D-702B-43FA-A7DA-24AC49CAFD87.jpeg
+/8412A3C3-6964-4478-BB05-7F739B86C771.jpeg
+/ADCE16DE-D058-44EC-BFF4-1191D6200CA8.jpeg
+/B54C1D6E-E8D8-46B5-B12D-DC201D8F879F.jpeg
+/C2506F6D-2FCB-4123-87D3-F132BB2B6049.jpeg
