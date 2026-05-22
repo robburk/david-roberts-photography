@@ -8,10 +8,12 @@
       name="description"
       content="Um conceito de portefólio minimalista para a fotografia imobiliária, comercial e aérea de David Robert's."
     />
+    <link rel="stylesheet" href="https://use.typekit.net/hxy7sal.css" />
     <style>
       :root {
-        --ink: #151515;
-        --muted: #8a8a8a;
+        --ink: #202020;
+        --body: #5f5f5f;
+        --muted: #949494;
         --line: rgba(21, 21, 21, 0.8);
         --hair: rgba(21, 21, 21, 0.16);
         --paper: #fff;
@@ -32,11 +34,9 @@
         margin: 0;
         background: var(--paper);
         color: var(--ink);
-        font-family:
-          "Inter", "Helvetica Neue", Arial, system-ui, -apple-system,
-          BlinkMacSystemFont, sans-serif;
+        font-family: "century-gothic", "Century Gothic", "AppleGothic", sans-serif;
         font-size: 15px;
-        line-height: 1.6;
+        line-height: 1.68;
         text-rendering: geometricPrecision;
         -webkit-font-smoothing: antialiased;
       }
@@ -144,7 +144,7 @@
       .conn-index {
         left: var(--spine-x);
         top: 50%;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: "century-gothic", "Century Gothic", "AppleGothic", sans-serif;
         font-size: 0.66rem;
         letter-spacing: 0.08em;
         color: var(--muted);
@@ -188,10 +188,11 @@
 
       h1 {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(2rem, 3.7vw, 4.45rem);
+        font-family: "century-gothic", "Century Gothic", "AppleGothic", sans-serif;
+        font-size: clamp(2rem, 3.45vw, 4.15rem);
         font-weight: 400;
-        line-height: 0.93;
+        line-height: 0.98;
+        letter-spacing: 0;
         white-space: nowrap;
       }
 
@@ -199,7 +200,7 @@
         margin: 15px 0 0;
         color: var(--muted);
         font-size: 0.72rem;
-        font-weight: 500;
+        font-weight: 400;
         letter-spacing: 0.14em;
         line-height: 1.8;
         text-transform: uppercase;
@@ -300,25 +301,26 @@
         margin: 0 0 22px;
         color: var(--muted);
         font-size: 0.68rem;
-        font-weight: 600;
-        letter-spacing: 0.2em;
+        font-weight: 400;
+        letter-spacing: 0.22em;
         line-height: 1;
         text-transform: uppercase;
       }
 
       h2 {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(1.7rem, 2.5vw, 3rem);
+        font-family: "century-gothic", "Century Gothic", "AppleGothic", sans-serif;
+        font-size: clamp(1.65rem, 2.35vw, 2.82rem);
         font-weight: 400;
-        line-height: 1.04;
+        line-height: 1.1;
+        letter-spacing: 0;
       }
 
-      .copy p {
+      .copy p:not(.micro):not(.caption) {
         margin: 24px 0 0;
-        color: #333;
+        color: var(--body);
         font-size: clamp(0.98rem, 1.1vw, 1.06rem);
-        line-height: 1.75;
+        line-height: 1.82;
       }
 
       .copy .caption {
@@ -390,10 +392,10 @@
 
       .about h2 { font-size: clamp(1.7rem, 2.5vw, 3rem); }
 
-      .about p {
+      .about p:not(.micro):not(.gear):not(.services) {
         margin: 24px 0 0;
-        color: #333;
-        line-height: 1.78;
+        color: var(--body);
+        line-height: 1.84;
         font-size: clamp(0.98rem, 1.1vw, 1.06rem);
       }
 
@@ -408,16 +410,16 @@
         margin-top: 26px;
         color: var(--muted);
         font-size: 0.66rem;
-        font-weight: 600;
-        letter-spacing: 0.16em;
+        font-weight: 400;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
       }
 
-      .contact p {
+      .contact p:not(.micro) {
         max-width: 440px;
         margin: 26px 0 0;
-        color: #333;
-        line-height: 1.8;
+        color: var(--body);
+        line-height: 1.86;
       }
 
       .contact-list {
@@ -429,12 +431,12 @@
         list-style: none;
         color: var(--muted);
         font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.13em;
+        font-weight: 400;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
       }
 
-      .contact-list a { color: var(--ink); }
+      .contact-list a { color: #3c3c3c; }
 
       .book-link {
         display: inline-block;
@@ -442,7 +444,7 @@
         padding-bottom: 9px;
         border-bottom: 1px solid var(--ink);
         font-size: 0.72rem;
-        font-weight: 700;
+        font-weight: 400;
         letter-spacing: 0.18em;
         text-transform: uppercase;
       }
@@ -456,7 +458,7 @@
         align-items: center;
         gap: 9px;
         font-size: 0.66rem;
-        font-weight: 600;
+        font-weight: 400;
         letter-spacing: 0.16em;
         text-transform: uppercase;
         opacity: 0;
