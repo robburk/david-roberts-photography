@@ -23,9 +23,6 @@
         --dial-opacity: 0;
         --dial-rot: 0deg;
         --dial-scale: 0.94;
-        --lens-opacity: 0;
-        --lens-focus: 0;
-        --lens-y: 50%;
       }
 
       * {
@@ -178,56 +175,6 @@
 
       .spine::before { top: 11%; }
       .spine::after { bottom: 11%; }
-
-      /* LENS PLANE: self-contained optical layer. Remove this block,
-         the .lens-plane markup, and the --lens-* JS updates to revert. */
-      .lens-plane {
-        position: fixed;
-        left: var(--spine-x);
-        top: var(--lens-y);
-        z-index: 1;
-        width: clamp(84px, 9vw, 144px);
-        height: min(54vh, 480px);
-        pointer-events: none;
-        opacity: var(--lens-opacity);
-        transform: translate(-50%, -50%) scaleX(calc(0.88 + var(--lens-focus) * 0.12));
-        transition: opacity 0.18s linear;
-        mix-blend-mode: multiply;
-        will-change: opacity, transform, top;
-      }
-
-      .lens-plane::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-          linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(21, 21, 21, 0.025) 32%,
-            rgba(255, 255, 255, 0.72) 48%,
-            rgba(21, 21, 21, 0.05) 50%,
-            rgba(255, 255, 255, 0.72) 52%,
-            rgba(21, 21, 21, 0.025) 68%,
-            transparent 100%
-          );
-        -webkit-mask: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
-        mask: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
-      }
-
-      .lens-plane::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: calc(50% - var(--lens-focus) * 42%);
-        width: 1px;
-        height: calc(18% + var(--lens-focus) * 34%);
-        background: rgba(21, 21, 21, 0.18);
-        transform: translateX(-50%);
-        box-shadow:
-          -15px 0 0 -0.5px rgba(21, 21, 21, 0.04),
-          15px 0 0 -0.5px rgba(21, 21, 21, 0.04);
-      }
 
       .archive-dial,
       .archive-readout {
@@ -513,24 +460,6 @@
         mix-blend-mode: screen;
       }
 
-      .photo-frame .image-clip::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 2;
-        pointer-events: none;
-        opacity: calc(var(--lens-focus) * var(--roll-opacity) * 0.5);
-        background:
-          linear-gradient(
-            90deg,
-            transparent 0%,
-            transparent calc(var(--scan-x, 50%) - 4%),
-            rgba(255, 255, 255, 0.34) var(--scan-x, 50%),
-            transparent calc(var(--scan-x, 50%) + 4%),
-            transparent 100%
-          );
-      }
-
       .copy {
         grid-column: var(--copy-column);
         position: relative;
@@ -778,8 +707,7 @@
         }
 
         .archive-dial,
-        .archive-readout,
-        .lens-plane {
+        .archive-readout {
           display: none;
         }
 
@@ -879,7 +807,7 @@
           transform: none;
         }
 
-        .conn-line, .conn-node, .conn-index, .archive-dial, .archive-readout, .lens-plane { opacity: 0 !important; }
+        .conn-line, .conn-node, .conn-index, .archive-dial, .archive-readout { opacity: 0 !important; }
       }
     </style>
   </head>
@@ -889,7 +817,6 @@
     <div class="cursor-ring" aria-hidden="true"></div>
     <main class="site" aria-label="David Roberts photography portfolio">
       <div class="spine" aria-hidden="true"></div>
-      <div class="lens-plane" aria-hidden="true"></div>
       <div class="archive-dial" aria-hidden="true"></div>
       <div class="archive-readout" aria-hidden="true">
         <span class="archive-readout__label">Archive</span>
@@ -1338,7 +1265,6 @@
           entry.style.setProperty("--roll-tilt", `${dir * eased * 1.7}deg`);
           entry.style.setProperty("--depth-z", `${Math.max(0, focus) * 42}px`);
           entry.style.setProperty("--depth-edge", `${Math.max(0, focus).toFixed(3)}`);
-          entry.style.setProperty("--lens-focus", Math.max(0, focus).toFixed(3));
           entry.style.setProperty("--drift", `${dir * eased * 12}px`);
           entry.style.setProperty("--image-parallax", `${dir * eased * -10}px`);
           entry.style.setProperty("--image-scale", `${1.018 + eased * 0.012}`);
@@ -1416,9 +1342,6 @@
           document.documentElement.style.setProperty("--dial-opacity", (activeFocus * 0.56).toFixed(3));
           document.documentElement.style.setProperty("--dial-rot", `${activeIdx * 18 + activeFocus * 12}deg`);
           document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeFocus * 0.08}`);
-          document.documentElement.style.setProperty("--lens-opacity", (activeFocus * 0.32).toFixed(3));
-          document.documentElement.style.setProperty("--lens-focus", activeFocus.toFixed(3));
-          document.documentElement.style.setProperty("--lens-y", "50%");
           const readoutX = side === "right" ? sx - 150 : sx + 74;
           const readoutAlign = side === "right" ? "right" : "left";
           dialLabel.parentElement.style.left = `${readoutX}px`;
@@ -1432,8 +1355,6 @@
           copyLine.style.opacity = "0";
           copyNode.style.opacity = "0";
           document.documentElement.style.setProperty("--dial-opacity", "0");
-          document.documentElement.style.setProperty("--lens-opacity", "0");
-          document.documentElement.style.setProperty("--lens-focus", "0");
           clearTilt(tiltPhoto);
           tiltPhoto = null;
         }
@@ -1459,7 +1380,6 @@
         placeNode(abtNode, { top: aAnchor, opacity: aFade, sx });
         if (aFade > 0.05) {
           document.documentElement.style.setProperty("--dial-opacity", "0");
-          document.documentElement.style.setProperty("--lens-opacity", "0");
         }
 
         // ---- CONTACT ----
@@ -1483,7 +1403,6 @@
         placeNode(conNode, { top: cAnchor, opacity: cFade, sx });
         if (cFade > 0.05) {
           document.documentElement.style.setProperty("--dial-opacity", "0");
-          document.documentElement.style.setProperty("--lens-opacity", "0");
         }
       };
 
