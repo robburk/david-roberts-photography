@@ -1101,30 +1101,32 @@
         align-self: start;
         justify-self: center;
         display: grid;
-        grid-template-columns: minmax(210px, 0.86fr) minmax(300px, 1.14fr);
-        column-gap: clamp(34px, 5vw, 82px);
-        row-gap: 12px;
-        width: min(760px, 68vw);
+        grid-template-columns: minmax(104px, 0.38fr) minmax(320px, 1fr);
+        column-gap: clamp(28px, 3.2vw, 54px);
+        row-gap: 8px;
+        width: min(640px, 56vw);
         max-width: none;
-        margin-top: clamp(18px, 2.6vh, 34px);
+        margin-top: clamp(18px, 2.4vh, 28px);
       }
 
       .archive-horizontal .copy .micro {
         grid-column: 1;
-        margin-bottom: 4px;
+        grid-row: 1 / span 2;
+        margin: 0;
+        padding-top: 0.3em;
       }
 
       .archive-horizontal .copy h2 {
-        grid-column: 1;
-        max-width: 12em;
+        grid-column: 2;
+        max-width: 16em;
       }
 
       .archive-horizontal .copy p:not(.micro) {
         grid-column: 2;
-        grid-row: 1 / span 2;
+        grid-row: 2;
         align-self: start;
-        margin-top: 0;
-        max-width: 34em;
+        margin-top: 8px;
+        max-width: 32em;
       }
 
       .archive-horizontal .about__inner,
@@ -1144,6 +1146,19 @@
         left: auto;
         right: calc(50% + 84px);
         width: min(430px, 35vw);
+      }
+
+      .archive-horizontal .contact .book-link {
+        position: absolute;
+        left: 0;
+        top: calc(76svh - clamp(86px, 17vh, 154px) + 38px);
+        margin: 0;
+        padding-bottom: 12px;
+        border-bottom-color: rgba(21, 21, 21, 0.42);
+        font-size: clamp(2rem, 3.4vw, 4rem);
+        line-height: 1;
+        letter-spacing: 0;
+        text-transform: none;
       }
 
       @keyframes h-spine-draw {
@@ -1234,6 +1249,16 @@
           right: 32px;
           top: clamp(76px, 13vh, 118px);
           width: auto;
+        }
+
+        .archive-horizontal .contact .book-link {
+          left: 32px;
+          right: 32px;
+          top: calc(72svh - clamp(76px, 13vh, 118px) + 28px);
+          width: fit-content;
+          max-width: calc(100vw - 64px);
+          font-size: clamp(1.7rem, 10vw, 3.15rem);
+          line-height: 0.98;
         }
       }
 
