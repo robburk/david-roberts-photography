@@ -20,6 +20,9 @@
         --measure: min(1380px, calc(100vw - 56px));
         --spine-x: 50%;
         --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        --dial-opacity: 0;
+        --dial-rot: 0deg;
+        --dial-scale: 0.94;
       }
 
       * {
@@ -172,6 +175,73 @@
 
       .spine::before { top: 11%; }
       .spine::after { bottom: 11%; }
+
+      .archive-dial,
+      .archive-readout {
+        position: fixed;
+        pointer-events: none;
+        opacity: var(--dial-opacity);
+        transition: opacity 0.18s linear;
+      }
+
+      .archive-dial {
+        left: var(--spine-x);
+        top: 50%;
+        z-index: 1;
+        width: clamp(138px, 14vw, 218px);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        transform: translate(-50%, -50%) rotate(var(--dial-rot)) scale(var(--dial-scale));
+        background:
+          conic-gradient(
+            from -12deg,
+            rgba(21, 21, 21, 0.22) 0deg 18deg,
+            transparent 18deg 86deg,
+            rgba(21, 21, 21, 0.12) 86deg 96deg,
+            transparent 96deg 174deg,
+            rgba(21, 21, 21, 0.18) 174deg 194deg,
+            transparent 194deg 268deg,
+            rgba(21, 21, 21, 0.1) 268deg 278deg,
+            transparent 278deg 360deg
+          );
+        -webkit-mask: radial-gradient(circle, transparent 0 64%, #000 65% 67%, transparent 68%);
+        mask: radial-gradient(circle, transparent 0 64%, #000 65% 67%, transparent 68%);
+        will-change: opacity, transform;
+      }
+
+      .archive-dial::before,
+      .archive-dial::after {
+        content: "";
+        position: absolute;
+        inset: 11%;
+        border-radius: 50%;
+        border: 1px solid rgba(21, 21, 21, 0.055);
+      }
+
+      .archive-dial::after {
+        inset: 28%;
+        border-color: rgba(21, 21, 21, 0.04);
+      }
+
+      .archive-readout {
+        left: calc(var(--spine-x) + 74px);
+        top: calc(50% - 136px);
+        z-index: 3;
+        display: grid;
+        gap: 7px;
+        color: rgba(21, 21, 21, 0.32);
+        font-size: 0.54rem;
+        font-weight: 400;
+        letter-spacing: 0.18em;
+        line-height: 1;
+        text-transform: uppercase;
+        transform: translateY(calc(var(--dial-scale) * -8px + 8px));
+      }
+
+      .archive-readout__count {
+        color: rgba(21, 21, 21, 0.2);
+        letter-spacing: 0.1em;
+      }
 
       /* Connector units. Position + length set per frame from the same
          scroll progress that drives the cards, never from a card's
@@ -347,6 +417,25 @@
         inset: 0;
         border: 1px solid rgba(21, 21, 21, 0.07);
         pointer-events: none;
+      }
+
+      .photo-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: calc(var(--roll-opacity) * 0.48);
+        background:
+          linear-gradient(
+            90deg,
+            transparent 0,
+            transparent calc(var(--scan-x, 50%) - 0.6px),
+            rgba(255, 255, 255, 0.7) var(--scan-x, 50%),
+            transparent calc(var(--scan-x, 50%) + 0.8px),
+            transparent 100%
+          );
+        mix-blend-mode: screen;
       }
 
       .copy {
@@ -593,6 +682,11 @@
           );
         }
 
+        .archive-dial,
+        .archive-readout {
+          display: none;
+        }
+
         .identity {
           left: 8px;
           top: 45%;
@@ -689,7 +783,7 @@
           transform: none;
         }
 
-        .conn-line, .conn-node, .conn-index { opacity: 0 !important; }
+        .conn-line, .conn-node, .conn-index, .archive-dial, .archive-readout { opacity: 0 !important; }
       }
     </style>
   </head>
@@ -699,6 +793,11 @@
     <div class="cursor-ring" aria-hidden="true"></div>
     <main class="site" aria-label="Portefólio de fotografia de David Roberts">
       <div class="spine" aria-hidden="true"></div>
+      <div class="archive-dial" aria-hidden="true"></div>
+      <div class="archive-readout" aria-hidden="true">
+        <span class="archive-readout__label">Arquivo</span>
+        <span class="archive-readout__count">00 / 09</span>
+      </div>
 
       <nav class="lang" aria-label="Idioma">
         <a class="lang__opt" href="index.html">EN</a>
@@ -890,6 +989,8 @@
       const identity = document.querySelector(".identity");
       const entries = Array.from(document.querySelectorAll(".entry"));
       const archive = document.querySelector(".archive");
+      const dialLabel = document.querySelector(".archive-readout__label");
+      const dialCount = document.querySelector(".archive-readout__count");
       const contact = document.querySelector(".contact");
       const contactInner = document.querySelector(".contact__inner");
       const about = document.querySelector(".about");
@@ -1121,6 +1222,7 @@
           entry.style.setProperty("--drift", `${dir * eased * 12}px`);
           entry.style.setProperty("--image-parallax", `${dir * eased * -10}px`);
           entry.style.setProperty("--image-scale", `${1.018 + eased * 0.012}`);
+          entry.style.setProperty("--scan-x", `${50 + dir * eased * 34}%`);
 
           if (focus > activeFocus) {
             activeFocus = focus;
@@ -1133,6 +1235,7 @@
         if (active && activeFocus > 0.012) {
           const fr = active.querySelector(".photo-frame");
           const cp = active.querySelector(".copy");
+          const activeMicro = active.querySelector(".micro")?.textContent || "Arquivo";
           if (tiltPhoto !== fr) {
             clearTilt(tiltPhoto);
             tiltPhoto = fr;
@@ -1190,12 +1293,22 @@
           actIndex.style.left =
             side === "right" ? `${sx - 52}px` : `${sx + 12}px`;
           actIndex.style.opacity = (activeFocus * 0.7).toFixed(3);
+          document.documentElement.style.setProperty("--dial-opacity", (activeFocus * 0.56).toFixed(3));
+          document.documentElement.style.setProperty("--dial-rot", `${activeIdx * 18 + activeFocus * 12}deg`);
+          document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeFocus * 0.08}`);
+          const readoutX = side === "right" ? sx - 150 : sx + 74;
+          const readoutAlign = side === "right" ? "right" : "left";
+          dialLabel.parentElement.style.left = `${readoutX}px`;
+          dialLabel.parentElement.style.textAlign = readoutAlign;
+          dialLabel.textContent = activeMicro;
+          dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
         } else {
           actLine.style.opacity = "0";
           actNode.style.opacity = "0";
           actIndex.style.opacity = "0";
           copyLine.style.opacity = "0";
           copyNode.style.opacity = "0";
+          document.documentElement.style.setProperty("--dial-opacity", "0");
           clearTilt(tiltPhoto);
           tiltPhoto = null;
         }
@@ -1219,6 +1332,9 @@
           sx,
         });
         placeNode(abtNode, { top: aAnchor, opacity: aFade, sx });
+        if (aFade > 0.05) {
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+        }
 
         // ---- CONTACT ----
         const cRect = contact.getBoundingClientRect();
@@ -1239,6 +1355,9 @@
           sx,
         });
         placeNode(conNode, { top: cAnchor, opacity: cFade, sx });
+        if (cFade > 0.05) {
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+        }
       };
 
       let ticking = false;
