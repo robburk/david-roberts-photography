@@ -1130,9 +1130,9 @@
       .archive-horizontal .about__inner,
       .archive-horizontal .contact__inner {
         position: absolute;
-        left: calc(50% + 92px);
-        top: calc(50% + 58px);
-        width: min(470px, 36vw);
+        left: calc(50% + 84px);
+        top: clamp(86px, 17vh, 154px);
+        width: min(520px, 38vw);
         margin: 0;
         padding: 0;
         opacity: 1;
@@ -1142,8 +1142,8 @@
 
       .archive-horizontal .about__inner {
         left: auto;
-        right: calc(50% + 92px);
-        width: min(360px, 34vw);
+        right: calc(50% + 84px);
+        width: min(430px, 35vw);
       }
 
       @keyframes h-spine-draw {
@@ -1232,7 +1232,7 @@
         .archive-horizontal .contact__inner {
           left: 32px;
           right: 32px;
-          top: calc(var(--h-spine-y) + 44px);
+          top: clamp(76px, 13vh, 118px);
           width: auto;
         }
       }
