@@ -1,6 +1,6 @@
-# David Robert's — Real Estate Photography
+# David Roberts — Real Estate Photography
 
-Minimalist portfolio website for David Robert's, a real estate, aerial, and property media photographer.
+Minimalist portfolio website for David Roberts, a real estate, aerial, and property media photographer.
 
 ## Stack
 
