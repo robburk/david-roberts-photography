@@ -28,6 +28,8 @@
 
       html {
         scroll-behavior: smooth;
+        scroll-padding-top: 12vh;
+        scroll-snap-type: y mandatory;
       }
 
       body {
@@ -58,10 +60,79 @@
         text-decoration: none;
       }
 
+      @media (pointer: fine) {
+        body,
+        a {
+          cursor: none;
+        }
+      }
+
       .site {
         position: relative;
         min-height: 100vh;
         overflow: clip;
+      }
+
+      .cursor-dot,
+      .cursor-ring,
+      .cursor-ripple {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 20;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(-50%, -50%, 0);
+      }
+
+      .cursor-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(21, 21, 21, 0.76);
+        transition: opacity 0.18s ease, transform 0.12s ease;
+      }
+
+      .cursor-ring {
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(21, 21, 21, 0.26);
+        border-radius: 50%;
+        transition:
+          opacity 0.18s ease,
+          width 0.2s var(--ease),
+          height 0.2s var(--ease),
+          border-color 0.2s ease;
+      }
+
+      .cursor-ripple {
+        width: 8px;
+        height: 8px;
+        border: 1px solid rgba(21, 21, 21, 0.34);
+        border-radius: 50%;
+        animation: cursor-ripple 0.52s var(--ease) forwards;
+      }
+
+      body.has-cursor .cursor-dot,
+      body.has-cursor .cursor-ring {
+        opacity: 1;
+      }
+
+      body.cursor-link .cursor-ring {
+        width: 42px;
+        height: 42px;
+        border-color: rgba(21, 21, 21, 0.42);
+      }
+
+      body.cursor-link .cursor-dot {
+        width: 3px;
+        height: 3px;
+      }
+
+      body.cursor-click .cursor-ring {
+        width: 22px;
+        height: 22px;
+        border-color: rgba(21, 21, 21, 0.5);
       }
 
       /* Fixed central spine. Stays put while cards pass through it. */
@@ -163,6 +234,7 @@
         width: var(--measure);
         margin: 0 auto;
         perspective: 1400px;
+        scroll-snap-align: start;
       }
 
       .identity {
@@ -216,7 +288,7 @@
 
       .entry {
         --image-column: 1 / 7;
-        --copy-column: 8 / 11;
+        --copy-column: 7 / 11;
         --roll-y: 0px;
         --roll-scale: 1;
         --roll-blur: 0px;
@@ -227,20 +299,22 @@
         --drift: 0px;
         --image-parallax: 0px;
         --image-scale: 1.03;
-        --copy-offset: 74px;
+        --copy-offset: 34px;
         position: relative;
         display: grid;
         grid-template-columns: repeat(12, minmax(0, 1fr));
         column-gap: clamp(18px, 3vw, 44px);
         align-items: center;
-        min-height: 124vh;
-        padding: 18vh 0;
+        min-height: 112vh;
+        padding: 14vh 0;
         perspective: 1600px;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
       }
 
       .entry:nth-child(even) {
         --image-column: 7 / 13;
-        --copy-column: 2 / 5;
+        --copy-column: 3 / 7;
       }
 
       .photo-frame {
@@ -278,7 +352,7 @@
       .copy {
         grid-column: var(--copy-column);
         position: relative;
-        max-width: 300px;
+        max-width: 360px;
         opacity: var(--roll-opacity);
         filter: blur(var(--copy-blur));
         transform: translateY(calc(var(--copy-offset) + var(--roll-y) * 0.66))
@@ -301,7 +375,7 @@
       .micro {
         margin: 0 0 22px;
         color: var(--muted);
-        font-size: 0.68rem;
+        font-size: 0.62rem;
         font-weight: 400;
         letter-spacing: 0.22em;
         line-height: 1;
@@ -311,7 +385,7 @@
       h2 {
         margin: 0;
         font-family: "century-gothic", "Century Gothic", "AppleGothic", sans-serif;
-        font-size: clamp(1.16rem, 1.55vw, 1.82rem);
+        font-size: clamp(1.08rem, 1.42vw, 1.66rem);
         font-weight: 400;
         line-height: 1.1;
         letter-spacing: 0;
@@ -320,8 +394,8 @@
       .copy p:not(.micro):not(.caption) {
         margin: 24px 0 0;
         color: var(--body);
-        font-size: clamp(0.82rem, 0.9vw, 0.92rem);
-        line-height: 1.78;
+        font-size: clamp(0.8rem, 0.86vw, 0.9rem);
+        line-height: 1.74;
       }
 
       .copy .caption {
@@ -338,6 +412,7 @@
         width: var(--measure);
         margin: 0 auto;
         padding: 8vh 0 18vh;
+        scroll-snap-align: center;
       }
 
       .contact__inner {
@@ -369,6 +444,7 @@
         width: var(--measure);
         margin: 0 auto;
         padding: 10vh 0;
+        scroll-snap-align: center;
       }
 
       .about__inner {
@@ -391,13 +467,13 @@
         transform: none;
       }
 
-      .about h2 { font-size: clamp(1.16rem, 1.55vw, 1.82rem); }
+      .about h2 { font-size: clamp(1.08rem, 1.42vw, 1.66rem); }
 
       .about p:not(.micro):not(.gear):not(.services) {
         margin: 24px 0 0;
         color: var(--body);
         line-height: 1.84;
-        font-size: clamp(0.82rem, 0.9vw, 0.92rem);
+        font-size: clamp(0.8rem, 0.86vw, 0.9rem);
       }
 
       .about .gear {
@@ -477,6 +553,26 @@
 
       @keyframes label-in {
         to { opacity: 1; filter: blur(0); transform: translateX(0); }
+      }
+
+      @keyframes cursor-ripple {
+        from {
+          opacity: 0.42;
+          transform: translate3d(-50%, -50%, 0) scale(1);
+        }
+
+        to {
+          opacity: 0;
+          transform: translate3d(-50%, -50%, 0) scale(6);
+        }
+      }
+
+      @media (pointer: coarse) {
+        .cursor-dot,
+        .cursor-ring,
+        .cursor-ripple {
+          display: none;
+        }
       }
 
       @media (max-width: 820px) {
@@ -599,6 +695,8 @@
   </head>
 
   <body>
+    <div class="cursor-dot" aria-hidden="true"></div>
+    <div class="cursor-ring" aria-hidden="true"></div>
     <main class="site" aria-label="David Roberts photography portfolio">
       <div class="spine" aria-hidden="true"></div>
 
@@ -614,6 +712,8 @@
       <div class="conn-line is-active" aria-hidden="true"></div>
       <div class="conn-node is-active" aria-hidden="true"></div>
       <div class="conn-index" aria-hidden="true"></div>
+      <div class="conn-line is-copy" aria-hidden="true"></div>
+      <div class="conn-node is-copy" aria-hidden="true"></div>
 
       <div class="conn-line is-about" aria-hidden="true"></div>
       <div class="conn-node is-about" aria-hidden="true"></div>
@@ -802,6 +902,7 @@
       const intro = document.querySelector(".intro");
       const identity = document.querySelector(".identity");
       const entries = Array.from(document.querySelectorAll(".entry"));
+      const archive = document.querySelector(".archive");
       const contact = document.querySelector(".contact");
       const contactInner = document.querySelector(".contact__inner");
       const about = document.querySelector(".about");
@@ -812,6 +913,8 @@
       const actLine = document.querySelector(".conn-line.is-active");
       const actNode = document.querySelector(".conn-node.is-active");
       const actIndex = document.querySelector(".conn-index");
+      const copyLine = document.querySelector(".conn-line.is-copy");
+      const copyNode = document.querySelector(".conn-node.is-copy");
       const conLine = document.querySelector(".conn-line.is-contact");
       const conNode = document.querySelector(".conn-node.is-contact");
       const abtLine = document.querySelector(".conn-line.is-about");
@@ -833,6 +936,66 @@
         }
         return parseFloat(raw) || window.innerWidth / 2;
       };
+
+      const cursorDot = document.querySelector(".cursor-dot");
+      const cursorRing = document.querySelector(".cursor-ring");
+      const finePointer = window.matchMedia("(pointer: fine)");
+      let cursorX = window.innerWidth / 2;
+      let cursorY = window.innerHeight / 2;
+      let ringX = cursorX;
+      let ringY = cursorY;
+
+      const moveCursor = () => {
+        if (!finePointer.matches || !cursorDot || !cursorRing) return;
+        ringX += (cursorX - ringX) * 0.22;
+        ringY += (cursorY - ringY) * 0.22;
+        cursorDot.style.transform =
+          `translate3d(${cursorX}px, ${cursorY}px, 0) translate3d(-50%, -50%, 0)`;
+        cursorRing.style.transform =
+          `translate3d(${ringX}px, ${ringY}px, 0) translate3d(-50%, -50%, 0)`;
+        requestAnimationFrame(moveCursor);
+      };
+
+      if (finePointer.matches && cursorDot && cursorRing) {
+        document.body.classList.add("has-cursor");
+        requestAnimationFrame(moveCursor);
+
+        window.addEventListener(
+          "pointermove",
+          (e) => {
+            cursorX = e.clientX;
+            cursorY = e.clientY;
+            document.body.classList.add("has-cursor");
+          },
+          { passive: true },
+        );
+
+        window.addEventListener("pointerdown", (e) => {
+          document.body.classList.add("cursor-click");
+          const ripple = document.createElement("span");
+          ripple.className = "cursor-ripple";
+          ripple.style.left = `${e.clientX}px`;
+          ripple.style.top = `${e.clientY}px`;
+          document.body.appendChild(ripple);
+          ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+        });
+
+        window.addEventListener("pointerup", () => {
+          document.body.classList.remove("cursor-click");
+        });
+
+        document.addEventListener("pointerover", (e) => {
+          if (e.target.closest("a, button, [role='button']")) {
+            document.body.classList.add("cursor-link");
+          }
+        });
+
+        document.addEventListener("pointerout", (e) => {
+          if (e.target.closest("a, button, [role='button']")) {
+            document.body.classList.remove("cursor-link");
+          }
+        });
+      }
 
       // ---- 2.5D pointer parallax (desktop only) ----
       // Only the centered photo tilts toward the cursor; the image surface
@@ -982,18 +1145,30 @@
 
         if (active && activeFocus > 0.012) {
           const fr = active.querySelector(".photo-frame");
+          const cp = active.querySelector(".copy");
           if (tiltPhoto !== fr) {
             clearTilt(tiltPhoto);
             tiltPhoto = fr;
           }
           applyTilt();
-          const frRect = fr.getBoundingClientRect();
+          const archiveRect = archive.getBoundingClientRect();
+          const frRect = {
+            left: archiveRect.left + fr.offsetLeft,
+            top: archiveRect.top + active.offsetTop + fr.offsetTop,
+            width: fr.offsetWidth,
+            height: fr.offsetHeight,
+          };
+          const cpRect = {
+            left: archiveRect.left + cp.offsetLeft,
+            top: archiveRect.top + active.offsetTop + cp.offsetTop,
+            width: cp.offsetWidth,
+            height: cp.offsetHeight,
+          };
           const fLeft = frRect.left;
           const fTop = frRect.top;
           const fW = frRect.width;
-          const fH = frRect.height;
           const side = fLeft + fW / 2 < sx ? "left" : "right";
-          const anchorY = clamp(fTop + fH * 0.48, spineTop, spineBottom);
+          const anchorY = clamp(fTop + 16, spineTop, spineBottom);
           const reach = side === "left" ? sx - (fLeft + fW) : fLeft - sx;
           const grown = Math.max(0, reach) * (0.34 + 0.66 * activeFocus);
 
@@ -1006,6 +1181,22 @@
           });
           placeNode(actNode, { top: anchorY, opacity: activeFocus, sx });
 
+          const cLeft = cpRect.left;
+          const cW = cpRect.width;
+          const copySide = cLeft + cW / 2 < sx ? "left" : "right";
+          const copyAnchorY = clamp(cpRect.top + cpRect.height - 10, spineTop, spineBottom);
+          const copyReach = copySide === "left" ? sx - (cLeft + cW) : cLeft - sx;
+          const copyGrown = Math.max(0, copyReach) * (0.28 + 0.72 * activeFocus);
+
+          placeLine(copyLine, {
+            side: copySide,
+            top: copyAnchorY,
+            length: copyGrown,
+            opacity: activeFocus * 0.44,
+            sx,
+          });
+          placeNode(copyNode, { top: copyAnchorY, opacity: activeFocus * 0.56, sx });
+
           const num = String(activeIdx + 1).padStart(2, "0");
           actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
           actIndex.style.top = `${anchorY - 1}px`;
@@ -1016,6 +1207,8 @@
           actLine.style.opacity = "0";
           actNode.style.opacity = "0";
           actIndex.style.opacity = "0";
+          copyLine.style.opacity = "0";
+          copyNode.style.opacity = "0";
           clearTilt(tiltPhoto);
           tiltPhoto = null;
         }
