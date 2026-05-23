@@ -44,6 +44,7 @@
         line-height: 1.68;
         text-rendering: geometricPrecision;
         -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
       }
 
       img {
@@ -660,6 +661,10 @@
       .lang__opt.is-current { color: var(--ink); }
       .lang__sep { color: var(--hair); }
 
+      .mobile-status {
+        display: none;
+      }
+
       @keyframes spine-draw {
         to { transform: translate(-0.5px, -50%) scaleY(1); }
       }
@@ -690,13 +695,24 @@
 
       @media (max-width: 820px) {
         :root {
-          --measure: min(100vw - 32px, 560px);
-          --spine-x: 24px;
+          --measure: min(100vw - 28px, 560px);
+          --spine-x: 22px;
+        }
+
+        html {
+          scroll-padding-top: 8vh;
+          scroll-snap-type: y proximity;
+        }
+
+        body {
+          font-size: 14px;
+          overscroll-behavior-y: contain;
         }
 
         .lang { top: 18px; right: 16px; gap: 7px; }
 
         .spine {
+          height: min(68vh, 520px);
           background: linear-gradient(
             to bottom,
             transparent 0,
@@ -704,6 +720,12 @@
             var(--line) 88%,
             transparent 100%
           );
+        }
+
+        .spine::before,
+        .spine::after {
+          width: 6px;
+          height: 6px;
         }
 
         .archive-dial,
@@ -727,7 +749,7 @@
         .subtitle { max-width: 260px; font-size: 0.66rem; }
 
         .archive {
-          width: min(100vw - 32px, 560px);
+          width: min(100vw - 28px, 560px);
           margin: 0 auto;
           padding-top: 0;
         }
@@ -735,16 +757,24 @@
         .entry,
         .entry:nth-child(even) {
           display: block;
-          min-height: auto;
-          padding: 13vh 0 7vh 50px;
+          min-height: 92svh;
+          padding: 11vh 0 10vh 48px;
+          scroll-snap-align: center;
         }
 
         .photo-frame,
         .entry:nth-child(even) .photo-frame {
           position: relative;
           top: auto;
-          aspect-ratio: 1.1 / 1;
+          aspect-ratio: 1.06 / 1;
           transform: translateY(var(--roll-y)) scale(var(--roll-scale))
+            rotateX(var(--roll-rotate));
+          touch-action: pan-y;
+        }
+
+        .photo-frame:active {
+          --depth-z: 18px;
+          transform: translateY(calc(var(--roll-y) + 2px)) scale(calc(var(--roll-scale) * 0.992))
             rotateX(var(--roll-rotate));
         }
 
@@ -753,15 +783,37 @@
           position: relative;
           top: auto;
           max-width: none;
-          margin-top: 30px;
+          margin-top: 24px;
           justify-self: auto;
           transform: translateY(calc(28px + var(--roll-y) * 0.66))
             scale(calc(var(--roll-scale) + 0.014));
         }
 
+        .micro {
+          margin-bottom: 16px;
+          font-size: 0.58rem;
+        }
+
+        h2 {
+          font-size: clamp(1.18rem, 6vw, 1.72rem);
+          line-height: 1.08;
+        }
+
+        .copy p:not(.micro):not(.caption) {
+          margin-top: 18px;
+          max-width: 30em;
+          font-size: 0.84rem;
+          line-height: 1.7;
+        }
+
+        .copy .caption {
+          margin-top: 14px;
+          font-size: 0.76rem;
+        }
+
         .contact {
           min-height: 72vh;
-          padding: 14vh 0 14vh 50px;
+          padding: 13vh 0 18vh 48px;
         }
 
         .contact__inner {
@@ -772,7 +824,7 @@
 
         .about {
           min-height: auto;
-          padding: 12vh 0 12vh 50px;
+          padding: 12vh 0 14vh 48px;
         }
 
         .about__inner {
@@ -782,7 +834,78 @@
           padding-top: 0;
         }
 
-        .contact-list { justify-content: flex-start; gap: 12px 22px; }
+        .contact-list {
+          display: grid;
+          gap: 14px;
+          font-size: 0.7rem;
+        }
+
+        .contact-list a,
+        .book-link,
+        .lang__opt {
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .book-link {
+          margin-top: 34px;
+        }
+
+        .mobile-status {
+          position: fixed;
+          left: 16px;
+          right: 16px;
+          bottom: max(12px, env(safe-area-inset-bottom));
+          z-index: 8;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 10px 0 0;
+          border-top: 1px solid rgba(21, 21, 21, 0.12);
+          color: rgba(21, 21, 21, 0.58);
+          font-size: 0.58rem;
+          letter-spacing: 0.16em;
+          line-height: 1;
+          text-transform: uppercase;
+          opacity: 0;
+          transform: translateY(10px);
+          transition: opacity 0.28s ease, transform 0.28s var(--ease);
+        }
+
+        body.is-mobile-ready .mobile-status {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .mobile-status__label {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .mobile-status__controls {
+          display: flex;
+          gap: 8px;
+        }
+
+        .mobile-status button {
+          width: 40px;
+          height: 38px;
+          border: 1px solid rgba(21, 21, 21, 0.15);
+          border-radius: 0;
+          background: rgba(255, 255, 255, 0.86);
+          color: rgba(21, 21, 21, 0.72);
+          font: inherit;
+          line-height: 1;
+          transition: transform 0.14s var(--ease), background 0.14s ease;
+        }
+
+        .mobile-status button:active {
+          background: rgba(21, 21, 21, 0.04);
+          transform: translateY(1px) scale(0.96);
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -821,6 +944,13 @@
       <div class="archive-readout" aria-hidden="true">
         <span class="archive-readout__label">Arquivo</span>
         <span class="archive-readout__count">00 / 09</span>
+      </div>
+      <div class="mobile-status" aria-label="Navegação móvel por secção">
+        <span class="mobile-status__label">00 / Arquivo</span>
+        <span class="mobile-status__controls">
+          <button type="button" data-mobile-jump="-1" aria-label="Secção anterior">&uarr;</button>
+          <button type="button" data-mobile-jump="1" aria-label="Secção seguinte">&darr;</button>
+        </span>
       </div>
 
       <nav class="lang" aria-label="Idioma">
@@ -1019,6 +1149,9 @@
       const contactInner = document.querySelector(".contact__inner");
       const about = document.querySelector(".about");
       const aboutInner = document.querySelector(".about__inner");
+      const mobileStatus = document.querySelector(".mobile-status");
+      const mobileStatusLabel = document.querySelector(".mobile-status__label");
+      const mobileJumpButtons = Array.from(document.querySelectorAll("[data-mobile-jump]"));
 
       const introLine = document.querySelector(".conn-line.is-intro");
       const introNode = document.querySelector(".conn-node.is-intro");
@@ -1181,6 +1314,26 @@
         node.style.top = `${top}px`;
         node.style.opacity = opacity.toFixed(3);
       };
+      const mobileTargets = [intro, ...entries, about, contact];
+      const setMobileLabel = (text) => {
+        if (mobileStatusLabel) mobileStatusLabel.textContent = text;
+      };
+
+      mobileJumpButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const dir = Number(button.dataset.mobileJump) || 1;
+          const closest = mobileTargets.reduce(
+            (best, target, index) => {
+              const rect = target.getBoundingClientRect();
+              const distance = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2);
+              return distance < best.distance ? { index, distance } : best;
+            },
+            { index: 0, distance: Infinity },
+          );
+          const nextIndex = clamp(closest.index + dir, 0, mobileTargets.length - 1);
+          mobileTargets[nextIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      });
 
       const frame = () => {
         const vh = window.innerHeight;
@@ -1335,6 +1488,7 @@
           dialLabel.parentElement.style.textAlign = readoutAlign;
           dialLabel.textContent = activeMicro;
           dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+          setMobileLabel(`${num} / ${activeMicro}`);
         } else {
           actLine.style.opacity = "0";
           actNode.style.opacity = "0";
@@ -1367,6 +1521,7 @@
         placeNode(abtNode, { top: aAnchor, opacity: aFade, sx });
         if (aFade > 0.05) {
           document.documentElement.style.setProperty("--dial-opacity", "0");
+          setMobileLabel("Sobre");
         }
 
         // ---- CONTACT ----
@@ -1390,6 +1545,7 @@
         placeNode(conNode, { top: cAnchor, opacity: cFade, sx });
         if (cFade > 0.05) {
           document.documentElement.style.setProperty("--dial-opacity", "0");
+          setMobileLabel("Contacto");
         }
       };
 
@@ -1404,6 +1560,7 @@
       };
 
       frame();
+      document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onScroll);
     </script>
