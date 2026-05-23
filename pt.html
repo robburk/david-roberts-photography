@@ -756,10 +756,45 @@
 
         .entry,
         .entry:nth-child(even) {
+          --mobile-spine-local: 8px;
+          --mobile-content-start: 46px;
           display: block;
           min-height: auto;
           padding: 7vh 0 6vh 46px;
           scroll-snap-align: none;
+        }
+
+        .entry::before,
+        .entry::after {
+          content: "";
+          position: absolute;
+          pointer-events: none;
+          opacity: var(--roll-opacity);
+        }
+
+        .entry::before {
+          left: var(--mobile-spine-local);
+          top: calc(7vh + 14px);
+          width: calc(var(--mobile-content-start) - var(--mobile-spine-local));
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            rgba(21, 21, 21, 0.72),
+            rgba(21, 21, 21, 0.18)
+          );
+          transform: scaleX(calc(0.65 + var(--roll-opacity) * 0.35));
+          transform-origin: left center;
+        }
+
+        .entry::after {
+          left: var(--mobile-spine-local);
+          top: calc(7vh + 11px);
+          width: 7px;
+          height: 7px;
+          border: 1px solid rgba(21, 21, 21, 0.38);
+          border-radius: 50%;
+          background: var(--paper);
+          transform: translateX(-50%) scale(calc(0.86 + var(--roll-opacity) * 0.14));
         }
 
         .photo-frame,
@@ -865,17 +900,17 @@
           position: fixed;
           left: 16px;
           right: 16px;
-          bottom: max(12px, env(safe-area-inset-bottom));
+          bottom: max(10px, env(safe-area-inset-bottom));
           z-index: 8;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding: 10px 0 0;
-          border-top: 1px solid rgba(21, 21, 21, 0.12);
-          color: rgba(21, 21, 21, 0.58);
-          font-size: 0.58rem;
-          letter-spacing: 0.16em;
+          padding: 8px 0 0;
+          border-top: 1px solid rgba(21, 21, 21, 0.08);
+          color: rgba(21, 21, 21, 0.44);
+          font-size: 0.54rem;
+          letter-spacing: 0.14em;
           line-height: 1;
           text-transform: uppercase;
           opacity: 0;
@@ -900,12 +935,12 @@
         }
 
         .mobile-status button {
-          width: 40px;
-          height: 38px;
-          border: 1px solid rgba(21, 21, 21, 0.15);
+          width: 36px;
+          height: 34px;
+          border: 1px solid rgba(21, 21, 21, 0.11);
           border-radius: 0;
           background: rgba(255, 255, 255, 0.86);
-          color: rgba(21, 21, 21, 0.72);
+          color: rgba(21, 21, 21, 0.58);
           font: inherit;
           line-height: 1;
           transition: transform 0.14s var(--ease), background 0.14s ease;
