@@ -1100,7 +1100,31 @@
         grid-row: 2;
         align-self: start;
         justify-self: center;
+        display: grid;
+        grid-template-columns: minmax(210px, 0.86fr) minmax(300px, 1.14fr);
+        column-gap: clamp(34px, 5vw, 82px);
+        row-gap: 12px;
+        width: min(760px, 68vw);
+        max-width: none;
         margin-top: clamp(18px, 2.6vh, 34px);
+      }
+
+      .archive-horizontal .copy .micro {
+        grid-column: 1;
+        margin-bottom: 4px;
+      }
+
+      .archive-horizontal .copy h2 {
+        grid-column: 1;
+        max-width: 12em;
+      }
+
+      .archive-horizontal .copy p:not(.micro) {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: start;
+        margin-top: 0;
+        max-width: 34em;
       }
 
       .archive-horizontal .about__inner,
@@ -1186,8 +1210,22 @@
           grid-column: 1;
           grid-row: 2;
           align-self: start;
+          display: block;
+          width: auto;
+          max-width: none;
           margin-top: 18px;
           padding: 0 12px;
+        }
+
+        .archive-horizontal .copy .micro,
+        .archive-horizontal .copy h2,
+        .archive-horizontal .copy p:not(.micro) {
+          max-width: none;
+          margin-top: revert;
+        }
+
+        .archive-horizontal .copy p:not(.micro) {
+          margin-top: 12px;
         }
 
         .archive-horizontal .about__inner,
@@ -1727,7 +1765,7 @@
           const cpRect = cp.getBoundingClientRect();
           const imageX = frRect.left + frRect.width / 2;
           const imageLen = Math.max(0, spineY - frRect.bottom);
-          const copyX = cpRect.left + Math.min(cpRect.width * 0.35, 140);
+          const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
           const copyLen = Math.max(0, cpRect.top - spineY);
           const lineFocus = activeEntryFocus ** 1.35;
 
