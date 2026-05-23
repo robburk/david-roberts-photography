@@ -366,6 +366,8 @@
         --roll-opacity: 0;
         --roll-rotate: 0deg;
         --roll-tilt: 0deg;
+        --depth-z: 0px;
+        --depth-edge: 0;
         --drift: 0px;
         --image-parallax: 0px;
         --image-scale: 1.03;
@@ -391,13 +393,15 @@
         position: relative;
         grid-column: var(--image-column);
         aspect-ratio: 1.42 / 1;
-        overflow: hidden;
+        overflow: visible;
         opacity: var(--roll-opacity);
         filter: blur(var(--roll-blur));
         transform: translateY(var(--roll-y)) translateX(var(--drift))
-          scale(var(--roll-scale)) rotateX(calc(var(--roll-rotate) + var(--ptr-rx, 0deg)))
+          translateZ(var(--depth-z)) scale(var(--roll-scale)) rotateX(calc(var(--roll-rotate) + var(--ptr-rx, 0deg)))
           rotateY(calc(var(--roll-tilt) + var(--ptr-ry, 0deg)));
         transform-style: preserve-3d;
+        transform-origin: center;
+        isolation: isolate;
         transition:
           opacity 0.12s linear,
           filter 0.12s linear,
@@ -407,15 +411,33 @@
 
       .entry:nth-child(even) .photo-frame {
         transform: translateY(var(--roll-y)) translateX(calc(var(--drift) * -1))
-          scale(var(--roll-scale)) rotateX(calc(var(--roll-rotate) + var(--ptr-rx, 0deg)))
+          translateZ(var(--depth-z)) scale(var(--roll-scale)) rotateX(calc(var(--roll-rotate) + var(--ptr-rx, 0deg)))
           rotateY(calc(var(--roll-tilt) * -1 + var(--ptr-ry, 0deg)));
+      }
+
+      .photo-frame img {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+      }
+
+      .image-clip {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: block;
+        overflow: hidden;
       }
 
       .photo-frame::after {
         content: "";
         position: absolute;
         inset: 0;
+        z-index: 4;
         border: 1px solid rgba(21, 21, 21, 0.07);
+        box-shadow:
+          calc(var(--depth-edge) * 10px) calc(var(--depth-edge) * 12px) 0 -11px rgba(21, 21, 21, 0.16),
+          calc(var(--depth-edge) * 20px) calc(var(--depth-edge) * 24px) 0 -23px rgba(21, 21, 21, 0.11);
         pointer-events: none;
       }
 
@@ -423,7 +445,7 @@
         content: "";
         position: absolute;
         inset: 0;
-        z-index: 1;
+        z-index: 3;
         pointer-events: none;
         opacity: calc(var(--roll-opacity) * 0.48);
         background:
@@ -446,6 +468,7 @@
         filter: blur(var(--copy-blur));
         transform: translateY(calc(var(--copy-offset) + var(--roll-y) * 0.66))
           translateX(calc(var(--drift) * -1))
+          translateZ(calc(var(--depth-z) * 0.38))
           scale(calc(var(--roll-scale) + 0.014));
         transition:
           opacity 0.12s linear,
@@ -458,6 +481,7 @@
         justify-self: end;
         transform: translateY(calc(var(--copy-offset) + var(--roll-y) * 0.66))
           translateX(var(--drift))
+          translateZ(calc(var(--depth-z) * 0.38))
           scale(calc(var(--roll-scale) + 0.014));
       }
 
@@ -1008,6 +1032,13 @@
       const abtLine = document.querySelector(".conn-line.is-about");
       const abtNode = document.querySelector(".conn-node.is-about");
 
+      document.querySelectorAll(".photo-frame > img").forEach((img) => {
+        const clip = document.createElement("span");
+        clip.className = "image-clip";
+        img.replaceWith(clip);
+        clip.appendChild(img);
+      });
+
       const clamp = (v, a = 0, b = 1) => Math.min(Math.max(v, a), b);
       const smoothstep = (e0, e1, v) => {
         const x = clamp((v - e0) / (e1 - e0));
@@ -1219,6 +1250,8 @@
           entry.style.setProperty("--copy-blur", `${eased * 2.2}px`);
           entry.style.setProperty("--roll-rotate", `${dir * eased * 2.4}deg`);
           entry.style.setProperty("--roll-tilt", `${dir * eased * 1.7}deg`);
+          entry.style.setProperty("--depth-z", `${Math.max(0, focus) * 42}px`);
+          entry.style.setProperty("--depth-edge", `${Math.max(0, focus).toFixed(3)}`);
           entry.style.setProperty("--drift", `${dir * eased * 12}px`);
           entry.style.setProperty("--image-parallax", `${dir * eased * -10}px`);
           entry.style.setProperty("--image-scale", `${1.018 + eased * 0.012}`);
