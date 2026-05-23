@@ -232,9 +232,9 @@
         display: grid;
         grid-template-columns: repeat(12, minmax(0, 1fr));
         column-gap: clamp(18px, 3vw, 44px);
-        align-items: start;
-        min-height: 145vh;
-        padding: 12vh 0 22vh;
+        align-items: center;
+        min-height: 132vh;
+        padding: 20vh 0;
         perspective: 1600px;
       }
 
@@ -244,8 +244,7 @@
       }
 
       .photo-frame {
-        position: sticky;
-        top: 10vh;
+        position: relative;
         grid-column: var(--image-column);
         aspect-ratio: 1.42 / 1;
         overflow: hidden;
@@ -278,8 +277,7 @@
 
       .copy {
         grid-column: var(--copy-column);
-        position: sticky;
-        top: 34vh;
+        position: relative;
         max-width: 282px;
         opacity: var(--roll-opacity);
         filter: blur(var(--copy-blur));
@@ -933,8 +931,7 @@
         placeNode(introNode, { top: introY, opacity: introFocus, sx });
 
         // ---- ENTRIES ----
-        // The entry creates the long scroll field; the photo/copy now stick
-        // briefly inside it, giving each image a quiet moment of attention.
+        // The long entry field slows each pass without native sticky release.
         let active = null;
         let activeRect = null;
         let activeIdx = -1;
@@ -946,21 +943,21 @@
           const delta = center - vc;
           const dir = delta < 0 ? -1 : 1;
           const abs = Math.abs(delta);
-          const depth = clamp(abs / (vh * 0.92));
+          const depth = clamp(abs / (vh * 1.12));
           const eased = depth * depth;
-          const focus = 1 - smoothstep(0.0, 0.82, abs / vc);
-          const presence = 1 - smoothstep(0.36, 1.16, depth);
+          const focus = 1 - smoothstep(0.0, 1.08, abs / vc);
+          const presence = 1 - smoothstep(0.5, 1.34, depth);
 
           entry.style.setProperty("--roll-opacity", clamp(presence * 1.1).toFixed(3));
-          entry.style.setProperty("--roll-y", `${dir * eased * 72}px`);
-          entry.style.setProperty("--roll-scale", `${1 - eased * 0.038}`);
-          entry.style.setProperty("--roll-blur", `${eased * 5}px`);
-          entry.style.setProperty("--copy-blur", `${eased * 3}px`);
-          entry.style.setProperty("--roll-rotate", `${dir * eased * 3.2}deg`);
-          entry.style.setProperty("--roll-tilt", `${dir * eased * 2.2}deg`);
-          entry.style.setProperty("--drift", `${dir * eased * 18}px`);
-          entry.style.setProperty("--image-parallax", `${dir * eased * -16}px`);
-          entry.style.setProperty("--image-scale", `${1.02 + eased * 0.016}`);
+          entry.style.setProperty("--roll-y", `${dir * eased * 52}px`);
+          entry.style.setProperty("--roll-scale", `${1 - eased * 0.03}`);
+          entry.style.setProperty("--roll-blur", `${eased * 3.8}px`);
+          entry.style.setProperty("--copy-blur", `${eased * 2.2}px`);
+          entry.style.setProperty("--roll-rotate", `${dir * eased * 2.4}deg`);
+          entry.style.setProperty("--roll-tilt", `${dir * eased * 1.7}deg`);
+          entry.style.setProperty("--drift", `${dir * eased * 12}px`);
+          entry.style.setProperty("--image-parallax", `${dir * eased * -10}px`);
+          entry.style.setProperty("--image-scale", `${1.018 + eased * 0.012}`);
 
           if (focus > activeFocus) {
             activeFocus = focus;
