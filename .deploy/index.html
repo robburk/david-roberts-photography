@@ -1903,7 +1903,7 @@
         el.classList.toggle("is-h-active", active);
         el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 0.88, 960)}px`);
         if (isScrolling()) {
-          // Binary during scroll — active snaps in, everything else snaps out
+          // Binary during scroll - active snaps in, everything else snaps out
           el.style.setProperty("--h-opacity", active ? "1" : "0");
           el.style.setProperty("--h-scale", "1");
         } else {

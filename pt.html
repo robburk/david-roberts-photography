@@ -55,7 +55,6 @@
         filter: brightness(1.11) contrast(1.05) saturate(1.03);
         transform: translate(var(--img-px, 0px), calc(var(--image-parallax, 0px) + var(--img-py, 0px)))
           scale(var(--image-scale, 1.06));
-        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
         will-change: transform;
       }
 
@@ -80,6 +79,47 @@
 
       .mobile-atmosphere {
         display: none;
+      }
+
+      .archive-horizontal .mobile-atmosphere {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        display: block;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 0;
+        transition: opacity 0.7s ease;
+      }
+
+      .archive-horizontal .mobile-atmosphere__layer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        filter: blur(28px) saturate(0.78);
+        transform: scale(1.16);
+        transition: opacity 0.7s ease;
+        will-change: opacity;
+      }
+
+      .archive-horizontal .mobile-atmosphere__layer.is-active {
+        opacity: 1;
+      }
+
+      .archive-horizontal .mobile-atmosphere::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 120% 120% at 50% 50%,
+          rgba(255,255,255,0) 0%,
+          rgba(255,255,255,0.42) 46%,
+          rgba(255,255,255,0.82) 68%,
+          #fff 100%
+        );
+        pointer-events: none;
       }
 
       .cursor-dot,
@@ -467,10 +507,8 @@
         position: absolute;
         inset: 0;
         z-index: 4;
-        border: 1px solid rgba(21, 21, 21, 0.07);
-        box-shadow:
-          calc(var(--depth-edge) * 10px) calc(var(--depth-edge) * 12px) 0 -11px rgba(21, 21, 21, 0.16),
-          calc(var(--depth-edge) * 20px) calc(var(--depth-edge) * 24px) 0 -23px rgba(21, 21, 21, 0.11);
+        border: none;
+        box-shadow: none;
         pointer-events: none;
       }
 
@@ -855,8 +893,8 @@
             rotateX(var(--roll-rotate));
           filter: none;
           transition:
-            opacity 0.42s ease,
-            transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+            opacity 0.32s ease,
+            transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
           touch-action: pan-y;
         }
 
@@ -1011,9 +1049,16 @@
         }
       }
 
+      /* Kill transitions during fast scroll so cards track instantly */
+      body.is-scrolling .photo-frame,
+      body.is-scrolling .copy,
+      body.is-scrolling .entry {
+        transition: none !important;
+      }
+
       body.archive-horizontal {
         overflow-x: hidden;
-        --h-spine-y: 76%;
+        --h-spine-y: 80%;
       }
 
       .archive-horizontal .site {
@@ -1092,16 +1137,16 @@
 
       .archive-horizontal .entry,
       .archive-horizontal .entry:nth-child(even) {
-        --image-column: 2 / 12;
+        --image-column: 1 / -1;
         --copy-column: 3 / 11;
         position: absolute;
         left: 50%;
         top: 0;
-        width: var(--measure);
-        height: 100svh;
+        width: 100vw;
+        height: var(--vh, 100svh);
         min-height: 0;
         padding: 0;
-        grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
+        grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(var(--vh, 100svh) - var(--h-spine-y)));
         align-items: stretch;
         opacity: var(--h-opacity, 0);
         transform: translateX(calc(-50% + var(--h-x, 0px))) scale(var(--h-scale, 1));
@@ -1111,20 +1156,35 @@
       }
 
       .archive-horizontal .entry:nth-child(even) {
-        --image-column: 2 / 12;
+        --image-column: 1 / -1;
         --copy-column: 3 / 11;
       }
 
       .archive-horizontal .photo-frame,
       .archive-horizontal .entry:nth-child(even) .photo-frame {
         grid-row: 1;
-        align-self: end;
-        aspect-ratio: 1.52 / 1;
-        margin-bottom: clamp(16px, 2.8vh, 28px);
+        position: relative;
+        align-self: stretch;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        margin: 0;
       }
 
       .archive-horizontal .photo-frame img {
+        position: absolute;
+        top: clamp(18px, 4vh, 44px);
+        bottom: clamp(12px, 2vh, 24px);
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: calc(100% - clamp(30px, 6vh, 68px));
         object-fit: contain;
+        object-position: center bottom;
+      }
+
+      .archive-horizontal .photo-frame::before {
+        display: none;
       }
 
       .archive-horizontal .copy,
@@ -1199,45 +1259,11 @@
 
       @media (max-width: 820px) {
         body.archive-horizontal {
-          --h-spine-y: 72%;
-        }
-
-        .mobile-atmosphere {
-          position: fixed;
-          inset: 0;
-          z-index: 0;
-          display: block;
-          pointer-events: none;
-          overflow: hidden;
-          opacity: 0.28;
-        }
-
-        .mobile-atmosphere::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.72) 22%, rgba(255, 255, 255, 0.68) 72%, #fff 100%),
-            rgba(255, 255, 255, 0.68);
-        }
-
-        .mobile-atmosphere__layer {
-          position: absolute;
-          inset: -46px;
-          background-position: center;
-          background-size: cover;
-          filter: blur(34px) saturate(0.96) brightness(1.08);
-          opacity: 0;
-          transform: scale(1.08);
-          transition: opacity 0.75s ease;
-        }
-
-        .mobile-atmosphere__layer.is-active {
-          opacity: 1;
+          --h-spine-y: 76%;
         }
 
         .archive-horizontal .site {
-          min-height: calc(var(--scene-count, 12) * 82svh);
+          min-height: calc(var(--scene-count, 12) * 52svh);
         }
 
         .archive-horizontal .spine {
@@ -1259,8 +1285,8 @@
         .archive-horizontal .entry:nth-child(even) {
           display: grid;
           grid-template-columns: 1fr;
-          grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
-          width: calc(100vw - 20px);
+          grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(var(--vh, 100svh) - var(--h-spine-y)));
+          width: 100vw;
           padding: 0;
         }
 
@@ -1281,9 +1307,30 @@
         .archive-horizontal .entry:nth-child(even) .photo-frame {
           grid-column: 1;
           grid-row: 1;
-          aspect-ratio: 1.02 / 1;
-          align-self: end;
-          margin-bottom: 16px;
+          position: relative;
+          width: 100%;
+          height: 100%;
+          align-self: stretch;
+          margin-bottom: 0;
+          overflow: hidden;
+        }
+
+        .archive-horizontal .photo-frame img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+        }
+
+        .archive-horizontal .photo-frame::before {
+          display: none;
+        }
+
+        .archive-horizontal .photo-frame::after {
+          border: none;
+          box-shadow: none;
         }
 
         .archive-horizontal .copy,
@@ -1359,21 +1406,21 @@
     <div class="cursor-dot" aria-hidden="true"></div>
     <div class="cursor-ring" aria-hidden="true"></div>
     <div class="mobile-atmosphere" aria-hidden="true">
-      <span class="mobile-atmosphere__layer is-active"></span>
-      <span class="mobile-atmosphere__layer"></span>
+      <canvas class="mobile-atmosphere__layer is-active" width="64" height="48"></canvas>
+      <canvas class="mobile-atmosphere__layer" width="64" height="48"></canvas>
     </div>
     <main class="site" aria-label="Portefólio de fotografia de David Roberts">
       <div class="spine" aria-hidden="true"></div>
       <div class="archive-dial" aria-hidden="true"></div>
       <div class="archive-readout" aria-hidden="true">
-        <span class="archive-readout__label">Arquivo</span>
+        <span class="archive-readout__label">Archive</span>
         <span class="archive-readout__count">00 / 09</span>
       </div>
-      <div class="mobile-status" aria-label="Navegação móvel por secção">
+      <div class="mobile-status" aria-label="Navegação de secções móvel">
         <span class="mobile-status__label">00 / Arquivo</span>
         <span class="mobile-status__controls">
           <button type="button" data-mobile-jump="-1" aria-label="Secção anterior">&uarr;</button>
-          <button type="button" data-mobile-jump="1" aria-label="Secção seguinte">&darr;</button>
+          <button type="button" data-mobile-jump="1" aria-label="Próxima secção">&darr;</button>
         </span>
       </div>
 
@@ -1575,6 +1622,16 @@
       const atmosphereLayers = Array.from(document.querySelectorAll(".mobile-atmosphere__layer"));
       let atmosphereIndex = 0;
       let atmosphereSrc = "";
+      let atmosTimer = null;
+
+      const drawCanvas = (canvas, src, onDone) => {
+        const img = new Image();
+        img.onload = () => {
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          onDone && onDone();
+        };
+        img.src = src;
+      };
 
       const introLine = document.querySelector(".conn-line.is-intro");
       const introNode = document.querySelector(".conn-node.is-intro");
@@ -1602,18 +1659,22 @@
       };
       const isMobile = () =>
         window.matchMedia("(max-width: 820px)").matches;
-      const setMobileAtmosphere = (src, focus = 1) => {
-        if (!atmosphere || !atmosphereLayers.length || !isMobile() || !src) return;
-        atmosphere.style.opacity = (0.12 + clamp(focus) * 0.16).toFixed(3);
+      const setMobileAtmosphere = (src, focus = 1, progress = 1) => {
+        if (!atmosphere || !atmosphereLayers.length || !src) return;
+        const fadeIn = clamp(smoothstep(0.15, 0.85, progress));
+        atmosphere.style.opacity = (fadeIn * (0.1 + clamp(focus) * 0.14)).toFixed(3);
         if (src === atmosphereSrc) return;
-
         atmosphereSrc = src;
-        atmosphereIndex = 1 - atmosphereIndex;
-        const nextLayer = atmosphereLayers[atmosphereIndex];
-        const prevLayer = atmosphereLayers[1 - atmosphereIndex];
-        nextLayer.style.backgroundImage = `url("${src}")`;
-        nextLayer.classList.add("is-active");
-        prevLayer.classList.remove("is-active");
+        clearTimeout(atmosTimer);
+        atmosTimer = setTimeout(() => {
+          const next = atmosphereLayers[1 - atmosphereIndex];
+          const prev = atmosphereLayers[atmosphereIndex];
+          drawCanvas(next, src, () => {
+            next.classList.add("is-active");
+            prev.classList.remove("is-active");
+            atmosphereIndex = 1 - atmosphereIndex;
+          });
+        }, 80);
       };
       const clearMobileAtmosphere = () => {
         if (atmosphere) atmosphere.style.opacity = "0";
@@ -1751,7 +1812,7 @@
             if (e.isIntersecting) {
               e.target.classList.add("is-mobile-visible");
               if (idx >= 0) {
-                const label = e.target.querySelector(".micro")?.textContent || "Arquivo";
+                const label = e.target.querySelector(".micro")?.textContent || "Archive";
                 setMobileLabel(`${String(idx + 1).padStart(2, "0")} / ${label}`);
               }
             }
@@ -1794,39 +1855,71 @@
       mobileJumpButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const dir = Number(button.dataset.mobileJump) || 1;
-          const current = isMobile()
-            ? mobileTargets.reduce((best, target, i) => {
-                const distance = Math.abs(target.getBoundingClientRect().top - window.innerHeight * 0.18);
-                return distance < best.distance ? { i, distance } : best;
-              }, { i: 0, distance: Infinity }).i
-            : Math.round(window.scrollY / (window.innerHeight * 0.82));
-          const nextIndex = clamp(current + dir, 0, mobileTargets.length - 1);
-          const top = isMobile()
-            ? mobileTargets[nextIndex].offsetTop - window.innerHeight * 0.08
-            : nextIndex * window.innerHeight * 0.82;
-          window.scrollTo({ top, behavior: "smooth" });
+          const step = window.innerHeight * (isMobile() ? 0.52 : 0.86);
+          const scenes = [intro, ...entries, about, contact];
+          const current = Math.round(window.scrollY / step);
+          const next = clamp(current + dir, 0, scenes.length - 1);
+          window.scrollTo({ top: next * step, behavior: "smooth" });
         });
       });
 
+      // Swipe left/right on mobile maps to scroll up/down (horizontal Rolodex)
+      let swipeStartX = 0;
+      let swipeStartY = 0;
+      let swipeStartScroll = 0;
+      let isSwiping = false;
+
+      window.addEventListener("touchstart", (e) => {
+        if (!isMobile()) return;
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        swipeStartScroll = window.scrollY;
+        isSwiping = true;
+      }, { passive: true });
+
+      window.addEventListener("touchmove", (e) => {
+        if (!isMobile() || !isSwiping) return;
+        const dx = swipeStartX - e.touches[0].clientX;
+        const dy = swipeStartY - e.touches[0].clientY;
+        // Only intercept if clearly horizontal swipe
+        if (Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) > 12) {
+          const step = window.innerHeight * 0.52;
+          window.scrollTo({ top: swipeStartScroll + dx * (step / window.innerWidth * 2.2), behavior: "instant" });
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchend", () => { isSwiping = false; }, { passive: true });
+
+      const isScrolling = () => document.body.classList.contains("is-scrolling");
+
       const setScene = (el, delta, active) => {
         const abs = Math.abs(delta);
-        const focus = 1 - smoothstep(0.02, 0.72, abs);
         el.classList.toggle("is-h-active", active);
-        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 1.05, 1120)}px`);
-        el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
-        el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
-        return focus;
+        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 0.88, 960)}px`);
+        if (isScrolling()) {
+          // Binary during scroll - active snaps in, everything else snaps out
+          el.style.setProperty("--h-opacity", active ? "1" : "0");
+          el.style.setProperty("--h-scale", "1");
+        } else {
+          const focus = 1 - smoothstep(0.02, 0.72, abs);
+          el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
+          el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
+        }
+        return 1 - smoothstep(0.02, 0.72, abs);
       };
 
       const frameHorizontal = () => {
         const vh = window.innerHeight;
         const vw = window.innerWidth;
+        // Keep --vh in sync with window.innerHeight so CSS grid rows
+        // match JS spine position (svh != innerHeight on iOS Safari)
+        document.documentElement.style.setProperty("--vh", `${vh}px`);
         const mobile = isMobile();
         const scenes = [intro, ...entries, about, contact];
-        const step = vh * (mobile ? 0.64 : 0.86);
+        const step = vh * (mobile ? 0.52 : 0.86);
         const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        const spineY = vh * (mobile ? 0.72 : 0.76);
+        const spineY = vh * (mobile ? 0.76 : 0.80);
         const sx = vw / 2;
 
         scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
@@ -1883,54 +1976,42 @@
         });
 
         if (activeEntry && activeEntryFocus > 0.05) {
-          const fr = activeEntry.querySelector(".photo-frame");
-          const cp = activeEntry.querySelector(".copy");
-          const activeMicro = activeEntry.querySelector(".micro")?.textContent || "Arquivo";
-          const activeImg = fr.querySelector("img");
-          const frRect = fr.getBoundingClientRect();
-          const cpRect = cp.getBoundingClientRect();
-          const imageX = frRect.left + frRect.width / 2;
-          const imageLen = Math.max(0, spineY - frRect.bottom);
-          const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
-          const copyLen = Math.max(0, cpRect.top - spineY);
-          const lineFocus = activeEntryFocus ** 1.35;
-
-          placeLine(actLine, {
-            side: "up",
-            top: spineY,
-            length: imageLen * lineFocus,
-            opacity: activeEntryFocus * 0.86,
-            sx: imageX,
-            orient: "vertical",
-          });
-          placeNode(actNode, { top: spineY, opacity: activeEntryFocus, sx: imageX });
-
-          placeLine(copyLine, {
-            side: "down",
-            top: spineY,
-            length: copyLen * lineFocus,
-            opacity: activeEntryFocus * 0.38,
-            sx: copyX,
-            orient: "vertical",
-          });
-          placeNode(copyNode, { top: spineY, opacity: activeEntryFocus * 0.48, sx: copyX });
-
+          const activeMicro = activeEntry.querySelector(".micro")?.textContent || "Archive";
           const num = String(activeEntryIndex + 1).padStart(2, "0");
-          actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
-          actIndex.style.top = `${spineY + 11}px`;
-          actIndex.style.left = `${imageX + 12}px`;
-          actIndex.style.opacity = (activeEntryFocus * 0.65).toFixed(3);
-          document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus * 0.44).toFixed(3));
-          document.documentElement.style.setProperty("--dial-rot", `${activeEntryIndex * 18 + activeEntryFocus * 12}deg`);
-          document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeEntryFocus * 0.08}`);
-          dialLabel.parentElement.style.left = `${sx + (mobile ? 42 : 86)}px`;
-          dialLabel.parentElement.style.top = `${spineY - (mobile ? 92 : 124)}px`;
-          dialLabel.parentElement.style.textAlign = "left";
-          dialLabel.textContent = activeMicro;
-          dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
           setMobileLabel(`${num} / ${activeMicro}`);
-          if (mobile && activeImg) {
-            setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus);
+
+          // Skip expensive connector/atmosphere work while flicking
+          if (!isScrolling()) {
+            const fr = activeEntry.querySelector(".photo-frame");
+            const cp = activeEntry.querySelector(".copy");
+            const activeImg = fr.querySelector("img");
+            const frRect = fr.getBoundingClientRect();
+            const cpRect = cp.getBoundingClientRect();
+            const imageX = frRect.left + frRect.width / 2;
+            const imageLen = Math.max(0, spineY - frRect.bottom);
+            const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
+            const copyLen = Math.max(0, cpRect.top - spineY);
+            const lineFocus = activeEntryFocus ** 1.35;
+
+            placeLine(actLine, { side: "up", top: spineY, length: imageLen * lineFocus, opacity: activeEntryFocus * 0.86, sx: imageX, orient: "vertical" });
+            placeNode(actNode, { top: spineY, opacity: activeEntryFocus, sx: imageX });
+            placeLine(copyLine, { side: "down", top: spineY, length: copyLen * lineFocus, opacity: activeEntryFocus * 0.38, sx: copyX, orient: "vertical" });
+            placeNode(copyNode, { top: spineY, opacity: activeEntryFocus * 0.48, sx: copyX });
+
+            actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+            actIndex.style.top = `${spineY + 11}px`;
+            actIndex.style.left = `${imageX + 12}px`;
+            actIndex.style.opacity = (activeEntryFocus * 0.65).toFixed(3);
+            document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus * 0.44).toFixed(3));
+            document.documentElement.style.setProperty("--dial-rot", `${activeEntryIndex * 18 + activeEntryFocus * 12}deg`);
+            document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeEntryFocus * 0.08}`);
+            dialLabel.parentElement.style.left = `${sx + (mobile ? 42 : 86)}px`;
+            dialLabel.parentElement.style.top = `${spineY - (mobile ? 92 : 124)}px`;
+            dialLabel.textContent = activeMicro;
+            dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+            if (activeImg) {
+              setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus, progress);
+            }
           }
         } else {
           actLine.style.opacity = "0";
@@ -1939,13 +2020,13 @@
           copyLine.style.opacity = "0";
           copyNode.style.opacity = "0";
           document.documentElement.style.setProperty("--dial-opacity", "0");
-          if (mobile) clearMobileAtmosphere();
+          clearMobileAtmosphere();
         }
 
         const aboutFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 1 - progress)));
         const contactFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 2 - progress)));
-        if (aboutFocus > 0.2) setMobileLabel("Sobre");
-        if (contactFocus > 0.2) setMobileLabel("Contacto");
+        if (aboutFocus > 0.2) setMobileLabel("About");
+        if (contactFocus > 0.2) setMobileLabel("Contact");
       };
 
       const frame = () => {
@@ -2059,7 +2140,7 @@
         if (active && activeFocus > 0.012) {
           const fr = active.querySelector(".photo-frame");
           const cp = active.querySelector(".copy");
-          const activeMicro = active.querySelector(".micro")?.textContent || "Arquivo";
+          const activeMicro = active.querySelector(".micro")?.textContent || "Archive";
           if (tiltPhoto !== fr) {
             clearTilt(tiltPhoto);
             tiltPhoto = fr;
@@ -2159,7 +2240,7 @@
         placeNode(abtNode, { top: aAnchor, opacity: aFade, sx });
         if (aFade > 0.05) {
           document.documentElement.style.setProperty("--dial-opacity", "0");
-          setMobileLabel("Sobre");
+          setMobileLabel("About");
         }
 
         // ---- CONTACT ----
@@ -2183,12 +2264,20 @@
         placeNode(conNode, { top: cAnchor, opacity: cFade, sx });
         if (cFade > 0.05) {
           document.documentElement.style.setProperty("--dial-opacity", "0");
-          setMobileLabel("Contacto");
+          setMobileLabel("Contact");
         }
       };
 
       let ticking = false;
+      let scrollEndTimer = null;
+
       const onScroll = () => {
+        document.body.classList.add("is-scrolling");
+        clearTimeout(scrollEndTimer);
+        scrollEndTimer = setTimeout(() => {
+          document.body.classList.remove("is-scrolling");
+          frame(); // redraw connectors + atmosphere now scroll is settled
+        }, 80);
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
