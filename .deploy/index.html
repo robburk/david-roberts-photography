@@ -55,7 +55,6 @@
         filter: brightness(1.11) contrast(1.05) saturate(1.03);
         transform: translate(var(--img-px, 0px), calc(var(--image-parallax, 0px) + var(--img-py, 0px)))
           scale(var(--image-scale, 1.06));
-        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
         will-change: transform;
       }
 
@@ -1013,7 +1012,7 @@
 
       body.archive-horizontal {
         overflow-x: hidden;
-        --h-spine-y: 76%;
+        --h-spine-y: 74%;
       }
 
       .archive-horizontal .site {
@@ -1199,7 +1198,7 @@
 
       @media (max-width: 820px) {
         body.archive-horizontal {
-          --h-spine-y: 72%;
+          --h-spine-y: 68%;
         }
 
         .mobile-atmosphere {
@@ -1226,10 +1225,10 @@
           inset: -46px;
           background-position: center;
           background-size: cover;
-          filter: blur(34px) saturate(0.96) brightness(1.08);
+          filter: blur(18px) saturate(0.88) brightness(1.1);
           opacity: 0;
-          transform: scale(1.08);
-          transition: opacity 0.75s ease;
+          transform: scale(1.12);
+          transition: opacity 0.55s ease;
         }
 
         .mobile-atmosphere__layer.is-active {
@@ -1237,7 +1236,7 @@
         }
 
         .archive-horizontal .site {
-          min-height: calc(var(--scene-count, 12) * 82svh);
+          min-height: calc(var(--scene-count, 12) * 52svh);
         }
 
         .archive-horizontal .spine {
@@ -1281,9 +1280,9 @@
         .archive-horizontal .entry:nth-child(even) .photo-frame {
           grid-column: 1;
           grid-row: 1;
-          aspect-ratio: 1.02 / 1;
+          aspect-ratio: 1.28 / 1;
           align-self: end;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
 
         .archive-horizontal .copy,
@@ -1609,16 +1608,23 @@
         window.matchMedia("(max-width: 820px)").matches;
       const setMobileAtmosphere = (src, focus = 1) => {
         if (!atmosphere || !atmosphereLayers.length || !isMobile() || !src) return;
-        atmosphere.style.opacity = (0.12 + clamp(focus) * 0.16).toFixed(3);
+        atmosphere.style.opacity = (0.08 + clamp(focus) * 0.12).toFixed(3);
         if (src === atmosphereSrc) return;
-
         atmosphereSrc = src;
-        atmosphereIndex = 1 - atmosphereIndex;
-        const nextLayer = atmosphereLayers[atmosphereIndex];
-        const prevLayer = atmosphereLayers[1 - atmosphereIndex];
-        nextLayer.style.backgroundImage = `url("${src}")`;
-        nextLayer.classList.add("is-active");
-        prevLayer.classList.remove("is-active");
+        // Only swap layers when not actively scrolling to avoid GPU thrash
+        const doSwap = () => {
+          atmosphereIndex = 1 - atmosphereIndex;
+          const nextLayer = atmosphereLayers[atmosphereIndex];
+          const prevLayer = atmosphereLayers[1 - atmosphereIndex];
+          nextLayer.style.backgroundImage = `url("${src}")`;
+          nextLayer.classList.add("is-active");
+          prevLayer.classList.remove("is-active");
+        };
+        if (typeof requestIdleCallback !== "undefined") {
+          requestIdleCallback(doSwap, { timeout: 400 });
+        } else {
+          setTimeout(doSwap, 120);
+        }
       };
       const clearMobileAtmosphere = () => {
         if (atmosphere) atmosphere.style.opacity = "0";
@@ -1828,10 +1834,10 @@
         const vw = window.innerWidth;
         const mobile = isMobile();
         const scenes = [intro, ...entries, about, contact];
-        const step = vh * (mobile ? 0.64 : 0.86);
+        const step = vh * (mobile ? 0.52 : 0.86);
         const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        const spineY = vh * (mobile ? 0.72 : 0.76);
+        const spineY = vh * (mobile ? 0.68 : 0.74);
         const sx = vw / 2;
 
         scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
