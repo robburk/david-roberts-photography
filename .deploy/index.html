@@ -1051,7 +1051,7 @@
 
       body.archive-horizontal {
         overflow-x: hidden;
-        --h-spine-y: 74%;
+        --h-spine-y: 80%;
       }
 
       .archive-horizontal .site {
@@ -1130,12 +1130,12 @@
 
       .archive-horizontal .entry,
       .archive-horizontal .entry:nth-child(even) {
-        --image-column: 2 / 12;
+        --image-column: 1 / -1;
         --copy-column: 3 / 11;
         position: absolute;
         left: 50%;
         top: 0;
-        width: var(--measure);
+        width: 100vw;
         height: 100svh;
         min-height: 0;
         padding: 0;
@@ -1149,7 +1149,7 @@
       }
 
       .archive-horizontal .entry:nth-child(even) {
-        --image-column: 2 / 12;
+        --image-column: 1 / -1;
         --copy-column: 3 / 11;
       }
 
@@ -1885,7 +1885,7 @@
         const step = vh * (mobile ? 0.52 : 0.86);
         const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        const spineY = vh * (mobile ? 0.76 : 0.74);
+        const spineY = vh * (mobile ? 0.76 : 0.80);
         const sx = vw / 2;
 
         scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
