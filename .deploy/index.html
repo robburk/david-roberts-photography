@@ -1157,15 +1157,24 @@
       .archive-horizontal .entry:nth-child(even) .photo-frame {
         grid-row: 1;
         align-self: end;
-        aspect-ratio: auto;
-        width: min(92vw, 1100px);
+        aspect-ratio: 3 / 2;
+        width: min(88vw, 1080px);
         max-height: calc(var(--h-spine-y) - clamp(18px, 3vh, 36px));
         margin: 0 auto clamp(14px, 2.2vh, 24px);
+        overflow: hidden;
       }
 
       .archive-horizontal .photo-frame img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         object-fit: contain;
-        object-position: center bottom;
+        object-position: center;
+      }
+
+      .archive-horizontal .photo-frame::before {
+        display: none;
       }
 
       .archive-horizontal .copy,
@@ -1298,6 +1307,10 @@
         .archive-horizontal .photo-frame img {
           object-fit: cover;
           object-position: center;
+        }
+
+        .archive-horizontal .photo-frame::before {
+          display: none;
         }
 
         .archive-horizontal .photo-frame::after {
