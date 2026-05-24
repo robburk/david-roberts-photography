@@ -30,7 +30,8 @@
       }
 
       html {
-        /* scroll-behavior: smooth intentionally removed - breaks window.scrollTo() on iOS Safari 15.4+ */
+        /* scroll-behavior: smooth removed - breaks window.scrollTo on iOS Safari */
+        scroll-padding-top: 0;
       }
 
       body {
@@ -51,7 +52,10 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        /* filter removed - forces stacking context on every image, expensive on mobile GPU */
+        /* filter removed - creates stacking context on every image */
+        transform: translate(var(--img-px, 0px), calc(var(--image-parallax, 0px) + var(--img-py, 0px)))
+          scale(var(--image-scale, 1.06));
+        will-change: transform;
       }
 
       a {
@@ -75,47 +79,6 @@
 
       .mobile-atmosphere {
         display: none;
-      }
-
-      .archive-horizontal .mobile-atmosphere {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        display: block;
-        pointer-events: none;
-        overflow: hidden;
-        opacity: 0;
-        transition: opacity 0.7s ease;
-      }
-
-      .archive-horizontal .mobile-atmosphere__layer {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        filter: blur(28px) saturate(0.78);
-        transform: scale(1.16);
-        transition: opacity 0.7s ease;
-        will-change: opacity;
-      }
-
-      .archive-horizontal .mobile-atmosphere__layer.is-active {
-        opacity: 1;
-      }
-
-      .archive-horizontal .mobile-atmosphere::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(
-          ellipse 120% 120% at 50% 50%,
-          rgba(255,255,255,0) 0%,
-          rgba(255,255,255,0.42) 46%,
-          rgba(255,255,255,0.82) 68%,
-          #fff 100%
-        );
-        pointer-events: none;
       }
 
       .cursor-dot,
@@ -386,7 +349,7 @@
         transform: translateY(calc(-50% + var(--intro-y)))
           scale(var(--intro-scale));
         transform-origin: left center;
-        will-change: opacity, transform;
+        will-change: opacity, filter, transform;
       }
 
       .identity__text {
@@ -472,7 +435,7 @@
           opacity 0.12s linear,
           filter 0.12s linear,
           transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-        will-change: opacity, transform;
+        will-change: opacity, filter, transform;
       }
 
       .entry:nth-child(even) .photo-frame {
@@ -500,8 +463,10 @@
         position: absolute;
         inset: 0;
         z-index: 4;
-        border: none;
-        box-shadow: none;
+        border: 1px solid rgba(21, 21, 21, 0.07);
+        box-shadow:
+          calc(var(--depth-edge) * 10px) calc(var(--depth-edge) * 12px) 0 -11px rgba(21, 21, 21, 0.16),
+          calc(var(--depth-edge) * 20px) calc(var(--depth-edge) * 24px) 0 -23px rgba(21, 21, 21, 0.11);
         pointer-events: none;
       }
 
@@ -538,7 +503,7 @@
           opacity 0.12s linear,
           filter 0.12s linear,
           transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-        will-change: opacity, transform;
+        will-change: opacity, filter, transform;
       }
 
       .entry:nth-child(even) .copy {
@@ -761,10 +726,12 @@
         }
 
         html {
+          scroll-padding-top: 8vh;
         }
 
         body {
           font-size: 14px;
+          overscroll-behavior-y: auto;
         }
 
         .lang { top: 18px; right: 16px; gap: 7px; }
@@ -880,8 +847,8 @@
             rotateX(var(--roll-rotate));
           filter: none;
           transition:
-            opacity 0.32s ease,
-            transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+            opacity 0.42s ease,
+            transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
           touch-action: pan-y;
         }
 
@@ -1036,43 +1003,9 @@
         }
       }
 
-      /* Kill CSS transitions on photo-frame during scroll - now controlled by _scrolling JS var */
-
-      /* Tap-to-reveal: mobile only */
-      @media (max-width: 820px) {
-        .archive-horizontal .photo-frame.is-revealed img {
-          object-fit: contain !important;
-          object-position: center !important;
-          background: #000;
-          transition: object-fit 0s;
-        }
-        .photo-frame.is-revealed::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.55);
-          z-index: 5;
-          pointer-events: none;
-        }
-        .reveal-hint {
-          position: absolute;
-          bottom: 14px;
-          right: 14px;
-          z-index: 6;
-          color: rgba(255,255,255,0.72);
-          font-size: 0.58rem;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-        .photo-frame:not(.is-revealed) .reveal-hint { opacity: 1; }
-      }
-
       body.archive-horizontal {
         overflow-x: hidden;
-        --h-spine-y: 80%;
+        --h-spine-y: 74%;
       }
 
       .archive-horizontal .site {
@@ -1125,8 +1058,9 @@
       .archive-horizontal .about,
       .archive-horizontal .contact {
         pointer-events: none;
-        opacity: 0;
-        transform: translateX(0px);
+        opacity: var(--h-opacity, 0);
+        transform: translateX(var(--h-x, 0px)) scale(var(--h-scale, 1));
+        transition: none;
         will-change: opacity, transform;
       }
 
@@ -1150,52 +1084,41 @@
 
       .archive-horizontal .entry,
       .archive-horizontal .entry:nth-child(even) {
-        --image-column: 1 / -1;
+        --image-column: 2 / 12;
         --copy-column: 3 / 11;
-        display: grid;
         position: absolute;
         left: 50%;
         top: 0;
-        width: 100vw;
-        height: var(--vh, 100svh);
+        width: var(--measure);
+        height: 100svh;
         min-height: 0;
         padding: 0;
-        grid-template-rows: var(--spine-y-px, 76vh) 1fr;
+        grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
         align-items: stretch;
-        opacity: 0;
-        transform: translateX(-50%);
+        opacity: var(--h-opacity, 0);
+        transform: translateX(calc(-50% + var(--h-x, 0px))) scale(var(--h-scale, 1));
         pointer-events: none;
         will-change: opacity, transform;
       }
 
       .archive-horizontal .entry:nth-child(even) {
-        --image-column: 1 / -1;
+        --image-column: 2 / 12;
         --copy-column: 3 / 11;
       }
 
       .archive-horizontal .photo-frame,
       .archive-horizontal .entry:nth-child(even) .photo-frame {
         grid-row: 1;
-        position: relative;
         align-self: end;
-        width: min(90vw, 1100px);
-        margin: 0 auto clamp(14px, 2.4vh, 26px);
         aspect-ratio: 3 / 2;
-        max-height: calc(var(--h-spine-y) - clamp(16px, 3vh, 36px));
+        width: min(84vw, 1060px);
+        max-height: calc(var(--h-spine-y) - 48px);
+        margin: 0 auto clamp(14px, 2.4vh, 24px);
         overflow: hidden;
       }
 
       .archive-horizontal .photo-frame img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
         object-fit: contain;
-        object-position: center;
-      }
-
-      .archive-horizontal .photo-frame::before {
-        display: none;
       }
 
       .archive-horizontal .copy,
@@ -1270,7 +1193,41 @@
 
       @media (max-width: 820px) {
         body.archive-horizontal {
-          --h-spine-y: 76%;
+          --h-spine-y: 68%;
+        }
+
+        .mobile-atmosphere {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          display: block;
+          pointer-events: none;
+          overflow: hidden;
+          opacity: 0.28;
+        }
+
+        .mobile-atmosphere::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.72) 22%, rgba(255, 255, 255, 0.68) 72%, #fff 100%),
+            rgba(255, 255, 255, 0.68);
+        }
+
+        .mobile-atmosphere__layer {
+          position: absolute;
+          inset: -46px;
+          background-position: center;
+          background-size: cover;
+          filter: blur(18px) saturate(0.88) brightness(1.1);
+          opacity: 0;
+          transform: scale(1.12);
+          transition: opacity 0.55s ease;
+        }
+
+        .mobile-atmosphere__layer.is-active {
+          opacity: 1;
         }
 
         .archive-horizontal .site {
@@ -1296,8 +1253,8 @@
         .archive-horizontal .entry:nth-child(even) {
           display: grid;
           grid-template-columns: 1fr;
-          grid-template-rows: var(--spine-y-px, 76vh) 1fr;
-          width: 100vw;
+          grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
+          width: calc(100vw - 20px);
           padding: 0;
         }
 
@@ -1307,14 +1264,11 @@
         }
 
         .archive-horizontal .conn-line.is-active,
+        .archive-horizontal .conn-line.is-copy,
         .archive-horizontal .conn-node.is-active,
+        .archive-horizontal .conn-node.is-copy,
         .archive-horizontal .conn-index {
           display: block;
-        }
-
-        .archive-horizontal .conn-line.is-copy,
-        .archive-horizontal .conn-node.is-copy {
-          display: none;
         }
 
         .archive-horizontal .photo-frame,
@@ -1323,21 +1277,7 @@
           grid-row: 1;
           aspect-ratio: 1.52 / 1;
           align-self: end;
-          margin-bottom: clamp(14px, 2.2vh, 22px);
-        }
-
-        .archive-horizontal .photo-frame img {
-          object-fit: cover;
-          object-position: center;
-        }
-
-        .archive-horizontal .photo-frame::before {
-          display: none;
-        }
-
-        .archive-horizontal .photo-frame::after {
-          border: none;
-          box-shadow: none;
+          margin-bottom: clamp(14px, 2vh, 22px);
         }
 
         .archive-horizontal .copy,
@@ -1413,8 +1353,8 @@
     <div class="cursor-dot" aria-hidden="true"></div>
     <div class="cursor-ring" aria-hidden="true"></div>
     <div class="mobile-atmosphere" aria-hidden="true">
-      <canvas class="mobile-atmosphere__layer is-active" width="64" height="48"></canvas>
-      <canvas class="mobile-atmosphere__layer" width="64" height="48"></canvas>
+      <span class="mobile-atmosphere__layer is-active"></span>
+      <span class="mobile-atmosphere__layer"></span>
     </div>
     <main class="site" aria-label="Portefólio de fotografia de David Roberts">
       <div class="spine" aria-hidden="true"></div>
@@ -1612,399 +1552,660 @@
     </main>
 
     <script>
-      // ── DOM refs ──────────────────────────────────────────────────
-      const intro    = document.querySelector(".intro");
-      const entries  = Array.from(document.querySelectorAll(".entry"));
-      const about    = document.querySelector(".about");
-      const contact  = document.querySelector(".contact");
+      const intro = document.querySelector(".intro");
+      const identity = document.querySelector(".identity");
+      const entries = Array.from(document.querySelectorAll(".entry"));
+      const archive = document.querySelector(".archive");
       const dialLabel = document.querySelector(".archive-readout__label");
       const dialCount = document.querySelector(".archive-readout__count");
-      const mobileStatusLabel  = document.querySelector(".mobile-status__label");
-      const mobileJumpButtons  = Array.from(document.querySelectorAll("[data-mobile-jump]"));
-      const atmosphere         = document.querySelector(".mobile-atmosphere");
-      const atmosphereLayers   = Array.from(document.querySelectorAll(".mobile-atmosphere__layer"));
-      const introLine  = document.querySelector(".conn-line.is-intro");
-      const introNode  = document.querySelector(".conn-node.is-intro");
-      const actLine    = document.querySelector(".conn-line.is-active");
-      const actNode    = document.querySelector(".conn-node.is-active");
-      const actIndex   = document.querySelector(".conn-index");
-      const copyLine   = document.querySelector(".conn-line.is-copy");
-      const copyNode   = document.querySelector(".conn-node.is-copy");
-      const conLine    = document.querySelector(".conn-line.is-contact");
-      const conNode    = document.querySelector(".conn-node.is-contact");
-      const abtLine    = document.querySelector(".conn-line.is-about");
-      const abtNode    = document.querySelector(".conn-node.is-about");
-      const cursorDot  = document.querySelector(".cursor-dot");
-      const cursorRing = document.querySelector(".cursor-ring");
+      const contact = document.querySelector(".contact");
+      const contactInner = document.querySelector(".contact__inner");
+      const about = document.querySelector(".about");
+      const aboutInner = document.querySelector(".about__inner");
+      const mobileStatus = document.querySelector(".mobile-status");
+      const mobileStatusLabel = document.querySelector(".mobile-status__label");
+      const mobileJumpButtons = Array.from(document.querySelectorAll("[data-mobile-jump]"));
+      const atmosphere = document.querySelector(".mobile-atmosphere");
+      const atmosphereLayers = Array.from(document.querySelectorAll(".mobile-atmosphere__layer"));
+      let atmosphereIndex = 0;
+      let atmosphereSrc = "";
 
-      // ── Helpers ───────────────────────────────────────────────────
-      const clamp = (v, a = 0, b = 1) => Math.min(Math.max(v, a), b);
-      const ss = (e0, e1, v) => { const x = clamp((v-e0)/(e1-e0)); return x*x*(3-2*x); };
+      const introLine = document.querySelector(".conn-line.is-intro");
+      const introNode = document.querySelector(".conn-node.is-intro");
+      const actLine = document.querySelector(".conn-line.is-active");
+      const actNode = document.querySelector(".conn-node.is-active");
+      const actIndex = document.querySelector(".conn-index");
+      const copyLine = document.querySelector(".conn-line.is-copy");
+      const copyNode = document.querySelector(".conn-node.is-copy");
+      const conLine = document.querySelector(".conn-line.is-contact");
+      const conNode = document.querySelector(".conn-node.is-contact");
+      const abtLine = document.querySelector(".conn-line.is-about");
+      const abtNode = document.querySelector(".conn-node.is-about");
 
-      // Cache isMobile - recheck only on resize
-      let _mobile = window.innerWidth <= 820;
-      const isMobile = () => _mobile;
-
-      // ── Wrap imgs in clip spans (needed for image-clip CSS) ───────
-      document.querySelectorAll(".photo-frame > img").forEach(img => {
+      document.querySelectorAll(".photo-frame > img").forEach((img) => {
         const clip = document.createElement("span");
         clip.className = "image-clip";
         img.replaceWith(clip);
         clip.appendChild(img);
-
-        // Add hint label
-        const hint = document.createElement("span");
-        hint.className = "reveal-hint";
-        hint.textContent = "View";
-        img.parentElement.parentElement.appendChild(hint);
       });
 
-      // ── Tap-to-reveal ─────────────────────────────────────────────
-      let revealTimer = null;
-      document.querySelectorAll(".photo-frame").forEach(frame => {
-        frame.addEventListener("click", e => {
-          if (!isMobile()) return;
-          // Ignore if this was a swipe rather than a tap
-          if (Math.abs(swipeDX) > 8) return;
-          clearTimeout(revealTimer);
-          frame.classList.toggle("is-revealed");
-          if (frame.classList.contains("is-revealed")) {
-            // Auto-collapse after 4s if user forgets to tap again
-            revealTimer = setTimeout(() => frame.classList.remove("is-revealed"), 4000);
-          }
-        }, { passive: true });
-      });
-
-      // ── Canvas atmosphere ─────────────────────────────────────────
-      let atmosIndex = 0, atmosSrc = "", atmosTimer = null;
-      const drawCanvas = (canvas, src, cb) => {
-        const img = new Image();
-        img.onload = () => { canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height); cb&&cb(); };
-        img.src = src;
+      const clamp = (v, a = 0, b = 1) => Math.min(Math.max(v, a), b);
+      const smoothstep = (e0, e1, v) => {
+        const x = clamp((v - e0) / (e1 - e0));
+        return x * x * (3 - 2 * x);
       };
-      const setMobileAtmosphere = (src, focus, progress) => {
-        if (!atmosphere || !atmosphereLayers.length || !src) return;
-        const fadeIn = clamp(ss(0.15, 0.85, progress));
-        atmosphere.style.opacity = (fadeIn * (0.1 + clamp(focus) * 0.14)).toFixed(3);
-        if (src === atmosSrc) return;
-        atmosSrc = src;
-        clearTimeout(atmosTimer);
-        atmosTimer = setTimeout(() => {
-          const next = atmosphereLayers[1 - atmosIndex];
-          const prev = atmosphereLayers[atmosIndex];
-          drawCanvas(next, src, () => {
-            next.classList.add("is-active");
-            prev.classList.remove("is-active");
-            atmosIndex = 1 - atmosIndex;
-          });
-        }, 100);
+      const isMobile = () =>
+        window.matchMedia("(max-width: 820px)").matches;
+      const setMobileAtmosphere = (src, focus = 1) => {
+        if (!atmosphere || !atmosphereLayers.length || !isMobile() || !src) return;
+        atmosphere.style.opacity = (0.08 + clamp(focus) * 0.12).toFixed(3);
+        if (src === atmosphereSrc) return;
+        atmosphereSrc = src;
+        // Only swap layers when not actively scrolling to avoid GPU thrash
+        const doSwap = () => {
+          atmosphereIndex = 1 - atmosphereIndex;
+          const nextLayer = atmosphereLayers[atmosphereIndex];
+          const prevLayer = atmosphereLayers[1 - atmosphereIndex];
+          nextLayer.style.backgroundImage = `url("${src}")`;
+          nextLayer.classList.add("is-active");
+          prevLayer.classList.remove("is-active");
+        };
+        if (typeof requestIdleCallback !== "undefined") {
+          requestIdleCallback(doSwap, { timeout: 400 });
+        } else {
+          setTimeout(doSwap, 120);
+        }
       };
-      const clearAtmosphere = () => { if (atmosphere) atmosphere.style.opacity = "0"; };
+      const clearMobileAtmosphere = () => {
+        if (atmosphere) atmosphere.style.opacity = "0";
+      };
+      const syncArchiveMode = () => {
+        document.body.classList.add("archive-horizontal");
+        document.documentElement.style.setProperty("--scene-count", entries.length + 3);
+        document.documentElement.style.setProperty("--h-spine-y", (mobile ? "76%" : "80%"));
+        document.documentElement.style.scrollSnapType = "none";
+      };
+      syncArchiveMode();
+      const spineX = () => {
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue("--spine-x")
+          .trim();
+        if (raw.endsWith("%")) {
+          return window.innerWidth * (parseFloat(raw) / 100);
+        }
+        return parseFloat(raw) || window.innerWidth / 2;
+      };
 
-      // ── Bootstrap ─────────────────────────────────────────────────
-      document.body.classList.add("archive-horizontal");
-      document.documentElement.style.setProperty("--scene-count", entries.length + 3);
-
-      // ── Custom cursor (desktop fine-pointer only) ─────────────────
+      const cursorDot = document.querySelector(".cursor-dot");
+      const cursorRing = document.querySelector(".cursor-ring");
       const finePointer = window.matchMedia("(pointer: fine)");
-      let cursorX = innerWidth/2, cursorY = innerHeight/2;
-      let ringX = cursorX, ringY = cursorY;
+      let cursorX = window.innerWidth / 2;
+      let cursorY = window.innerHeight / 2;
+      let ringX = cursorX;
+      let ringY = cursorY;
+
       const moveCursor = () => {
-        if (!finePointer.matches) return;
+        if (!finePointer.matches || !cursorDot || !cursorRing) return;
         ringX += (cursorX - ringX) * 0.22;
         ringY += (cursorY - ringY) * 0.22;
-        cursorDot.style.transform  = `translate3d(${cursorX}px,${cursorY}px,0) translate3d(-50%,-50%,0)`;
-        cursorRing.style.transform = `translate3d(${ringX}px,${ringY}px,0) translate3d(-50%,-50%,0)`;
+        cursorDot.style.transform =
+          `translate3d(${cursorX}px, ${cursorY}px, 0) translate3d(-50%, -50%, 0)`;
+        cursorRing.style.transform =
+          `translate3d(${ringX}px, ${ringY}px, 0) translate3d(-50%, -50%, 0)`;
         requestAnimationFrame(moveCursor);
       };
+
       if (finePointer.matches && cursorDot && cursorRing) {
         document.body.classList.add("has-cursor");
         requestAnimationFrame(moveCursor);
-        window.addEventListener("pointermove", e => {
-          cursorX = e.clientX; cursorY = e.clientY;
-          document.body.classList.add("has-cursor");
-        }, { passive: true });
-        window.addEventListener("pointerdown", e => {
+
+        window.addEventListener(
+          "pointermove",
+          (e) => {
+            cursorX = e.clientX;
+            cursorY = e.clientY;
+            document.body.classList.add("has-cursor");
+          },
+          { passive: true },
+        );
+
+        window.addEventListener("pointerdown", (e) => {
           document.body.classList.add("cursor-click");
-          const r = document.createElement("span");
-          r.className = "cursor-ripple";
-          r.style.cssText = `left:${e.clientX}px;top:${e.clientY}px`;
-          document.body.appendChild(r);
-          r.addEventListener("animationend", () => r.remove(), { once: true });
+          const ripple = document.createElement("span");
+          ripple.className = "cursor-ripple";
+          ripple.style.left = `${e.clientX}px`;
+          ripple.style.top = `${e.clientY}px`;
+          document.body.appendChild(ripple);
+          ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
         });
-        window.addEventListener("pointerup", () => document.body.classList.remove("cursor-click"));
-        document.addEventListener("pointerover", e => {
-          if (e.target.closest("a,button,[role='button']")) document.body.classList.add("cursor-link");
+
+        window.addEventListener("pointerup", () => {
+          document.body.classList.remove("cursor-click");
         });
-        document.addEventListener("pointerout", e => {
-          if (e.target.closest("a,button,[role='button']")) document.body.classList.remove("cursor-link");
+
+        document.addEventListener("pointerover", (e) => {
+          if (e.target.closest("a, button, [role='button']")) {
+            document.body.classList.add("cursor-link");
+          }
+        });
+
+        document.addEventListener("pointerout", (e) => {
+          if (e.target.closest("a, button, [role='button']")) {
+            document.body.classList.remove("cursor-link");
+          }
         });
       }
 
-      // ── 2.5D tilt (desktop only) ──────────────────────────────────
-      let ptrX = 0, ptrY = 0, tiltPhoto = null;
+      // ---- 2.5D pointer parallax (desktop only) ----
+      // Only the centered photo tilts toward the cursor; the image surface
+      // shifts the opposite way inside its frame, which reads as real depth.
+      let ptrX = 0;
+      let ptrY = 0;
+      let tiltPhoto = null;
       const applyTilt = () => {
         if (!tiltPhoto || isMobile()) return;
         tiltPhoto.style.setProperty("--ptr-ry", `${ptrX * 5.5}deg`);
         tiltPhoto.style.setProperty("--ptr-rx", `${-ptrY * 4.5}deg`);
         const img = tiltPhoto.querySelector("img");
-        if (img) { img.style.setProperty("--img-px", `${-ptrX*16}px`); img.style.setProperty("--img-py", `${-ptrY*12}px`); }
+        if (img) {
+          img.style.setProperty("--img-px", `${-ptrX * 16}px`);
+          img.style.setProperty("--img-py", `${-ptrY * 12}px`);
+        }
       };
-      const clearTilt = ph => {
-        if (!ph) return;
-        ph.style.setProperty("--ptr-ry","0deg"); ph.style.setProperty("--ptr-rx","0deg");
-        const img = ph.querySelector("img");
-        if (img) { img.style.setProperty("--img-px","0px"); img.style.setProperty("--img-py","0px"); }
+      const clearTilt = (photo) => {
+        if (!photo) return;
+        photo.style.setProperty("--ptr-ry", "0deg");
+        photo.style.setProperty("--ptr-rx", "0deg");
+        const img = photo.querySelector("img");
+        if (img) {
+          img.style.setProperty("--img-px", "0px");
+          img.style.setProperty("--img-py", "0px");
+        }
       };
-      window.addEventListener("mousemove", e => {
-        ptrX = e.clientX/innerWidth - 0.5;
-        ptrY = e.clientY/innerHeight - 0.5;
-        applyTilt();
-      }, { passive: true });
+      window.addEventListener(
+        "mousemove",
+        (e) => {
+          ptrX = e.clientX / window.innerWidth - 0.5;
+          ptrY = e.clientY / window.innerHeight - 0.5;
+          applyTilt();
+        },
+        { passive: true },
+      );
 
-      // ── Intersection observers (desktop non-horizontal mode) ──────
-      const visObserver = new IntersectionObserver(obs => {
-        obs.forEach(e => { if (e.isIntersecting) { e.target.classList.add("is-visible"); visObserver.unobserve(e.target); } });
-      }, { threshold: 0.26 });
-      visObserver.observe(about); visObserver.observe(contact);
+      const observer = new IntersectionObserver(
+        (obs) => {
+          obs.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("is-visible");
+              observer.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.26, rootMargin: "0px 0px -12% 0px" },
+      );
+      observer.observe(about);
+      observer.observe(contact);
 
-      // ── Connectors helper ─────────────────────────────────────────
-      const placeLine = (line, { side, top, length, opacity, sx, orient="horizontal" }) => {
+      const mobileEntryObserver = new IntersectionObserver(
+        (obs) => {
+          obs.forEach((e) => {
+            const idx = entries.indexOf(e.target);
+            if (e.isIntersecting) {
+              e.target.classList.add("is-mobile-visible");
+              if (idx >= 0) {
+                const label = e.target.querySelector(".micro")?.textContent || "Archive";
+                setMobileLabel(`${String(idx + 1).padStart(2, "0")} / ${label}`);
+              }
+            }
+          });
+        },
+        { threshold: 0.18, rootMargin: "0px 0px -10% 0px" },
+      );
+      entries.forEach((entry) => mobileEntryObserver.observe(entry));
+
+      // Place a connector line + node from a single set of geometry values.
+      // length and top come from untransformed layout, never a moving rect.
+      const placeLine = (line, { side, top, length, opacity, sx, orient = "horizontal" }) => {
         const len = Math.max(0, length);
         line.dataset.orient = orient;
         if (orient === "vertical") {
           line.dataset.side = side;
-          line.style.cssText += `left:${sx}px;top:${side==="up"?top-len:top}px;width:1px;height:${len}px;opacity:${opacity.toFixed(3)}`;
+          line.style.left = `${sx}px`;
+          line.style.top = `${side === "up" ? top - len : top}px`;
+          line.style.width = "1px";
+          line.style.height = `${len}px`;
         } else {
           line.dataset.side = side;
-          line.style.cssText += `top:${top}px;left:${side==="left"?sx-len:sx}px;width:${len}px;height:1px;opacity:${opacity.toFixed(3)}`;
+          line.style.top = `${top}px`;
+          line.style.left = `${side === "left" ? sx - len : sx}px`;
+          line.style.width = `${len}px`;
+          line.style.height = "1px";
         }
+        line.style.opacity = opacity.toFixed(3);
       };
       const placeNode = (node, { top, opacity, sx }) => {
         node.style.left = `${sx}px`;
-        node.style.top  = `${top}px`;
+        node.style.top = `${top}px`;
         node.style.opacity = opacity.toFixed(3);
       };
-      const setLabel = t => { if (mobileStatusLabel) mobileStatusLabel.textContent = t; };
+      const mobileTargets = [intro, ...entries, about, contact];
+      const setMobileLabel = (text) => {
+        if (mobileStatusLabel) mobileStatusLabel.textContent = text;
+      };
 
-      // ── Nav buttons ───────────────────────────────────────────────
-      const scenes = [intro, ...entries, about, contact];
-      mobileJumpButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-          const dir  = Number(btn.dataset.mobileJump) || 1;
-          const step = STEP || innerHeight * (isMobile() ? 0.52 : 0.86);
-          const cur  = Math.round(scrollY / step);
-          const next = clamp(cur + dir, 0, scenes.length - 1);
-          // Smooth scroll via JS animation - not CSS scroll-behavior (broken on iOS)
-          const target = next * step;
-          const start  = scrollY;
-          const dist   = target - start;
-          const dur    = 340;
-          const t0     = performance.now();
-          const tick   = now => {
-            const p = Math.min((now - t0) / dur, 1);
-            const ease = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
-            window.scrollTo(0, start + dist * ease);
-            if (p < 1) requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
+      mobileJumpButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const dir = Number(button.dataset.mobileJump) || 1;
+          const current = isMobile()
+            ? mobileTargets.reduce((best, target, i) => {
+                const distance = Math.abs(target.getBoundingClientRect().top - window.innerHeight * 0.18);
+                return distance < best.distance ? { i, distance } : best;
+              }, { i: 0, distance: Infinity }).i
+            : Math.round(window.scrollY / (window.innerHeight * 0.82));
+          const nextIndex = clamp(current + dir, 0, mobileTargets.length - 1);
+          const top = isMobile()
+            ? mobileTargets[nextIndex].offsetTop - window.innerHeight * 0.08
+            : nextIndex * window.innerHeight * 0.82;
+          window.scrollTo(0, top);
         });
       });
 
-      // ── Swipe L/R → scroll ────────────────────────────────────────
-      let swipeStartX = 0, swipeStartY = 0, swipeStartScroll = 0, swipeDX = 0, isSwiping = false;
-      window.addEventListener("touchstart", e => {
-        if (!isMobile()) return;
-        swipeStartX = e.touches[0].clientX;
-        swipeStartY = e.touches[0].clientY;
-        swipeStartScroll = scrollY;
-        swipeDX = 0;
-        isSwiping = true;
-      }, { passive: true });
-      window.addEventListener("touchmove", e => {
-        if (!isMobile() || !isSwiping) return;
-        swipeDX = swipeStartX - e.touches[0].clientX;
-        const dy = swipeStartY - e.touches[0].clientY;
-        if (Math.abs(swipeDX) > Math.abs(dy) * 1.4 && Math.abs(swipeDX) > 8) {
-          const step = STEP || innerHeight * 0.52;
-          // Use legacy scrollTo(x, y) - never blocked by scroll-behavior on iOS
-          window.scrollTo(0, swipeStartScroll + swipeDX * (step / innerWidth * 2.2));
-        }
-      }, { passive: true });
-      window.addEventListener("touchend", () => { isSwiping = false; }, { passive: true });
-
-      // ── Stable viewport values - set once, updated only on resize ──
-      let VH = innerHeight, VW = innerWidth;
-      let SPINE_Y = Math.round(VH * 0.76); // mobile
-      let STEP    = Math.round(VH * 0.52); // mobile
-
-      const setStableVars = () => {
-        VH = innerHeight; VW = innerWidth;
-        _mobile = VW <= 820;
-        SPINE_Y = Math.round(VH * (_mobile ? 0.76 : 0.80));
-        STEP    = Math.round(VH * (_mobile ? 0.52 : 0.86));
-        // Set pixel vars for CSS grid - stable, not per-frame
-        document.documentElement.style.setProperty("--vh",         `${VH}px`);
-        document.documentElement.style.setProperty("--spine-y-px", `${SPINE_Y}px`);
-        document.documentElement.style.setProperty("--scene-count", scenes.length);
-      };
-      setStableVars();
-
-      // ── Scene positioning ─────────────────────────────────────────
-      const setScene = (el, delta, active, isEntry) => {
+      const setScene = (el, delta, active) => {
         const abs = Math.abs(delta);
+        const focus = 1 - smoothstep(0.02, 0.72, abs);
         el.classList.toggle("is-h-active", active);
-
-        // Always write transform - GPU composited, no layout cost
-        const tx = delta * Math.min(VW * 0.88, 960);
-        el.style.transform = isEntry
-          ? `translateX(calc(-50% + ${tx}px))`
-          : `translateX(${tx}px)`;
-
-        // Skip opacity for elements clearly off screen
-        if (abs > 2.2) { el.style.opacity = "0"; return; }
-
-        if (_scrolling) {
-          // Binary snap during scroll - active=1, adjacent fades, rest=0
-          el.style.opacity = abs < 0.5 ? "1" : abs < 1.5 ? (1.5 - abs).toFixed(3) : "0";
-        } else {
-          // Smooth fade when settled - ss range covers delta 0→1.5 so adjacent card is visible
-          el.style.opacity = clamp((1 - ss(0, 1.5, abs)) * 1.2).toFixed(3);
-        }
+        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 1.05, 1120)}px`);
+        el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
+        el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
+        return focus;
       };
 
-      // ── Main frame loop ───────────────────────────────────────────
-      let _scrolling = false;
-      const frame = () => {
-        const mob      = isMobile();
-        const progress = clamp(scrollY / STEP, 0, scenes.length - 1);
+      const frameHorizontal = () => {
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
+        const mobile = isMobile();
+        const scenes = [intro, ...entries, about, contact];
+        const step = vh * (mobile ? 0.52 : 0.88);
+        const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        const sx       = VW / 2;
+        const spineY = vh * (mobile ? 0.68 : 0.74);
+        const sx = vw / 2;
 
-        // Position all scenes - skip offscreen ones
-        scenes.forEach((s, i) => setScene(s, i - progress, i === activeIdx, s.classList.contains("entry")));
+        scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
 
-        // ── Intro connector (only when visible, never during scroll) ──
-        if (!_scrolling && progress < 1.5) {
-          const idFocus = 1 - ss(0.05, 0.96, Math.abs(0 - progress));
-          placeLine(introLine, { side:"down", top:SPINE_Y, length:(mob?46:70)*(0.35+0.65*idFocus), opacity:idFocus*0.85, sx, orient:"vertical" });
-          placeNode(introNode, { top:SPINE_Y, opacity:idFocus, sx });
-        } else if (_scrolling) {
-          introLine.style.opacity = introNode.style.opacity = "0";
-        }
+        const idDelta = 0 - progress;
+        const idFocus = 1 - smoothstep(0.05, 0.96, Math.abs(idDelta));
+        intro.style.setProperty("--intro-opacity", clamp(idFocus).toFixed(3));
+        intro.style.setProperty("--intro-blur", `${smoothstep(0.45, 1, Math.abs(idDelta)) * 5}px`);
+        intro.style.setProperty("--intro-y", "0px");
+        intro.style.setProperty("--intro-scale", `${0.985 + idFocus * 0.015}`);
 
-        // ── Entry vars (desktop only, skip all on mobile during scroll) ──
-        let activeEntry = null, activeEntryFocus = 0, activeEntryIndex = -1;
+        const introLen = (mobile ? 46 : 70) * (0.35 + 0.65 * idFocus);
+        placeLine(introLine, {
+          side: "down",
+          top: spineY,
+          length: introLen,
+          opacity: idFocus * 0.85,
+          sx,
+          orient: "vertical",
+        });
+        placeNode(introNode, { top: spineY, opacity: idFocus, sx });
 
-        if (!mob) {
-          entries.forEach((entry, i) => {
-            const delta = i + 1 - progress;
-            const abs   = Math.abs(delta);
-            if (abs > 1.5) return; // skip invisible entries
-            const dir   = delta < 0 ? -1 : 1;
-            const eased = Math.min(1, abs) ** 2;
-            const focus = 1 - ss(0.02, 0.72, abs);
-            entry.style.setProperty("--roll-opacity", clamp((1-ss(0.32,0.88,abs))*1.12).toFixed(3));
-            entry.style.setProperty("--roll-y",       `${dir*eased*16}px`);
-            if (!_scrolling) {
-              entry.style.setProperty("--roll-scale",   `${1-eased*0.018}`);
-              entry.style.setProperty("--roll-blur",    `${eased*2.2}px`);
-              entry.style.setProperty("--copy-blur",    `${eased*1.3}px`);
-              entry.style.setProperty("--roll-rotate",  `${dir*eased*0.9}deg`);
-              entry.style.setProperty("--roll-tilt",    `${dir*eased*1.1}deg`);
-              entry.style.setProperty("--depth-z",      `${Math.max(0,focus)*32}px`);
-              entry.style.setProperty("--depth-edge",   `${(Math.max(0,focus)*0.82).toFixed(3)}`);
-              entry.style.setProperty("--image-parallax",`${dir*eased*-5}px`);
-              entry.style.setProperty("--image-scale",  `${1.003+eased*0.004}`);
-            }
-            if (focus > activeEntryFocus) {
-              activeEntry = entry; activeEntryFocus = focus; activeEntryIndex = i;
-            }
-          });
-        } else if (!_scrolling) {
-          // Mobile: only find active entry for connectors/atmosphere (no var writes)
-          entries.forEach((entry, i) => {
-            const focus = 1 - ss(0.02, 0.72, Math.abs(i + 1 - progress));
-            if (focus > activeEntryFocus) {
-              activeEntry = entry; activeEntryFocus = focus; activeEntryIndex = i;
-            }
-          });
-        }
+        let activeEntry = null;
+        let activeEntryFocus = 0;
+        let activeEntryIndex = -1;
 
-        // ── Connectors + atmosphere (never during scroll) ──
-        if (!_scrolling && activeEntry && activeEntryFocus > 0.05) {
-          const micro  = activeEntry.querySelector(".micro")?.textContent || "Archive";
-          const num    = String(activeEntryIndex + 1).padStart(2, "0");
-          const total  = String(entries.length).padStart(2, "0");
-          setLabel(`${num} / ${micro}`);
+        entries.forEach((entry, i) => {
+          const delta = i + 1 - progress;
+          const abs = Math.abs(delta);
+          const dir = delta < 0 ? -1 : 1;
+          const eased = Math.min(1, abs) ** 2;
+          const focus = 1 - smoothstep(0.02, 0.72, abs);
+          const presence = 1 - smoothstep(0.32, 0.88, abs);
 
-          const fr     = activeEntry.querySelector(".photo-frame");
-          const cp     = activeEntry.querySelector(".copy");
-          const img    = fr.querySelector("img");
-          const frRect = fr.getBoundingClientRect();
-          const imgX   = frRect.left + frRect.width / 2;
-          const imgLen = Math.max(0, SPINE_Y - frRect.bottom);
-          const lf     = activeEntryFocus ** 1.35;
+          entry.style.setProperty("--roll-opacity", clamp(presence * 1.12).toFixed(3));
+          entry.style.setProperty("--roll-y", `${dir * eased * (mobile ? 4 : 16)}px`);
+          entry.style.setProperty("--roll-scale", `${1 - eased * (mobile ? 0.003 : 0.018)}`);
+          entry.style.setProperty("--roll-blur", `${mobile ? 0 : eased * 2.2}px`);
+          entry.style.setProperty("--copy-blur", `${mobile ? 0 : eased * 1.3}px`);
+          entry.style.setProperty("--roll-rotate", `${mobile ? 0 : dir * eased * 0.9}deg`);
+          entry.style.setProperty("--roll-tilt", `${dir * eased * (mobile ? 0 : 1.1)}deg`);
+          entry.style.setProperty("--depth-z", `${Math.max(0, focus) * (mobile ? 0 : 32)}px`);
+          entry.style.setProperty("--depth-edge", `${(Math.max(0, focus) * (mobile ? 0.08 : 0.82)).toFixed(3)}`);
+          entry.style.setProperty("--drift", "0px");
+          entry.style.setProperty("--image-parallax", `${dir * eased * (mobile ? -1 : -5)}px`);
+          entry.style.setProperty("--image-scale", `${mobile ? 1.001 : 1.003 + eased * 0.004}`);
+          entry.style.setProperty("--scan-x", `${50 + dir * eased * 22}%`);
 
-          placeLine(actLine, { side:"up", top:SPINE_Y, length:imgLen*lf, opacity:activeEntryFocus*0.86, sx:imgX, orient:"vertical" });
-          placeNode(actNode, { top:SPINE_Y, opacity:activeEntryFocus, sx:imgX });
-
-          if (!mob) {
-            const cpRect = cp.getBoundingClientRect();
-            const cpX    = cpRect.left + cpRect.width * 0.5;
-            const cpLen  = Math.max(0, cpRect.top - SPINE_Y);
-            placeLine(copyLine,{ side:"down", top:SPINE_Y, length:cpLen*lf, opacity:activeEntryFocus*0.38, sx:cpX, orient:"vertical" });
-            placeNode(copyNode,{ top:SPINE_Y, opacity:activeEntryFocus*0.48, sx:cpX });
-            document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus*0.44).toFixed(3));
-            document.documentElement.style.setProperty("--dial-rot",     `${activeEntryIndex*18+activeEntryFocus*12}deg`);
-            document.documentElement.style.setProperty("--dial-scale",   `${0.92+activeEntryFocus*0.08}`);
-            dialLabel.parentElement.style.cssText += `;left:${sx+86}px;top:${SPINE_Y-124}px`;
-            dialLabel.textContent = micro;
-            dialCount.textContent = `${num} / ${total}`;
-            if (tiltPhoto && tiltPhoto !== fr) clearTilt(tiltPhoto);
-            tiltPhoto = fr; applyTilt();
+          if (focus > activeEntryFocus) {
+            activeEntry = entry;
+            activeEntryFocus = focus;
+            activeEntryIndex = i;
           }
+        });
 
-          actIndex.textContent   = `${num} / ${total}`;
-          actIndex.style.top     = `${SPINE_Y+11}px`;
-          actIndex.style.left    = `${imgX+12}px`;
-          actIndex.style.opacity = (activeEntryFocus*0.65).toFixed(3);
-          if (img) setMobileAtmosphere(img.currentSrc || img.getAttribute("src") || img.src, activeEntryFocus, progress);
+        if (activeEntry && activeEntryFocus > 0.05) {
+          const fr = activeEntry.querySelector(".photo-frame");
+          const cp = activeEntry.querySelector(".copy");
+          const activeMicro = activeEntry.querySelector(".micro")?.textContent || "Archive";
+          const activeImg = fr.querySelector("img");
+          const frRect = fr.getBoundingClientRect();
+          const cpRect = cp.getBoundingClientRect();
+          const imageX = frRect.left + frRect.width / 2;
+          const imageLen = Math.max(0, spineY - frRect.bottom);
+          const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
+          const copyLen = Math.max(0, cpRect.top - spineY);
+          const lineFocus = activeEntryFocus ** 1.35;
 
-        } else if (!_scrolling) {
-          actLine.style.opacity = actNode.style.opacity = actIndex.style.opacity = "0";
-          if (!mob) { copyLine.style.opacity = copyNode.style.opacity = "0"; document.documentElement.style.setProperty("--dial-opacity","0"); }
-          clearAtmosphere();
+          placeLine(actLine, {
+            side: "up",
+            top: spineY,
+            length: imageLen * lineFocus,
+            opacity: activeEntryFocus * 0.86,
+            sx: imageX,
+            orient: "vertical",
+          });
+          placeNode(actNode, { top: spineY, opacity: activeEntryFocus, sx: imageX });
+
+          placeLine(copyLine, {
+            side: "down",
+            top: spineY,
+            length: copyLen * lineFocus,
+            opacity: activeEntryFocus * 0.38,
+            sx: copyX,
+            orient: "vertical",
+          });
+          placeNode(copyNode, { top: spineY, opacity: activeEntryFocus * 0.48, sx: copyX });
+
+          const num = String(activeEntryIndex + 1).padStart(2, "0");
+          actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+          actIndex.style.top = `${spineY + 11}px`;
+          actIndex.style.left = `${imageX + 12}px`;
+          actIndex.style.opacity = (activeEntryFocus * 0.65).toFixed(3);
+          document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus * 0.44).toFixed(3));
+          document.documentElement.style.setProperty("--dial-rot", `${activeEntryIndex * 18 + activeEntryFocus * 12}deg`);
+          document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeEntryFocus * 0.08}`);
+          dialLabel.parentElement.style.left = `${sx + (mobile ? 42 : 86)}px`;
+          dialLabel.parentElement.style.top = `${spineY - (mobile ? 92 : 124)}px`;
+          dialLabel.parentElement.style.textAlign = "left";
+          dialLabel.textContent = activeMicro;
+          dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+          setMobileLabel(`${num} / ${activeMicro}`);
+          if (mobile && activeImg) {
+            setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus);
+          }
+        } else {
+          actLine.style.opacity = "0";
+          actNode.style.opacity = "0";
+          actIndex.style.opacity = "0";
+          copyLine.style.opacity = "0";
+          copyNode.style.opacity = "0";
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+          if (mobile) clearMobileAtmosphere();
         }
 
-        if (!_scrolling && !mob) {
-          const aFocus = Math.max(0, 1-ss(0.08,0.9,Math.abs(entries.length+1-progress)));
-          const cFocus = Math.max(0, 1-ss(0.08,0.9,Math.abs(entries.length+2-progress)));
-          placeLine(abtLine,{ side:"left",  top:VH/2, length:aFocus*80, opacity:aFocus*0.75, sx, orient:"horizontal" });
-          placeNode(abtNode,{ top:VH/2, opacity:aFocus, sx });
-          placeLine(conLine,{ side:"right", top:VH/2, length:cFocus*80, opacity:cFocus*0.75, sx, orient:"horizontal" });
-          placeNode(conNode,{ top:VH/2, opacity:cFocus, sx });
-          if (aFocus > 0.2) setLabel("About");
-          if (cFocus > 0.2) setLabel("Contact");
+        const aboutFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 1 - progress)));
+        const contactFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 2 - progress)));
+        if (aboutFocus > 0.2) setMobileLabel("About");
+        if (contactFocus > 0.2) setMobileLabel("Contact");
+      };
+
+      const frame = () => {
+        if (document.body.classList.contains("archive-horizontal")) {
+          frameHorizontal();
+          return;
+        }
+        if (isMobile()) {
+          actLine.style.opacity = "0";
+          actNode.style.opacity = "0";
+          actIndex.style.opacity = "0";
+          copyLine.style.opacity = "0";
+          copyNode.style.opacity = "0";
+          abtLine.style.opacity = "0";
+          abtNode.style.opacity = "0";
+          conLine.style.opacity = "0";
+          conNode.style.opacity = "0";
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+          return;
+        }
+        const vh = window.innerHeight;
+        const vc = vh / 2;
+        const range = Math.min(vh * 0.62, 560);
+        const spineTop = vc - range / 2;
+        const spineBottom = vc + range / 2;
+        const sx = spineX();
+        const mobile = isMobile();
+
+        // ---- INTRO ----
+        const introRect = intro.getBoundingClientRect();
+        const idCenter = introRect.top + introRect.height * 0.46;
+        const idDelta = idCenter - vc;
+        const idAbs = Math.abs(idDelta) / vc;
+        const idDepth = clamp(Math.abs(idDelta) / (vh * 0.7));
+        const idDir = idDelta < 0 ? -1 : 1;
+        const introFocus = 1 - smoothstep(0.02, 0.92, idAbs);
+
+        intro.style.setProperty(
+          "--intro-opacity",
+          (1 - smoothstep(0.05, 0.95, idDepth)).toFixed(3),
+        );
+        intro.style.setProperty(
+          "--intro-blur",
+          `${smoothstep(0.3, 1, idDepth) * 5}px`,
+        );
+        intro.style.setProperty(
+          "--intro-y",
+          `${idDir * idDepth * idDepth * 60}px`,
+        );
+        intro.style.setProperty("--intro-scale", `${1 - idDepth * 0.03}`);
+
+        const introY = clamp(idCenter, spineTop, spineBottom);
+        const introLen = (mobile ? 52 : 76) * (0.4 + 0.6 * introFocus);
+        placeLine(introLine, {
+          side: "right",
+          top: introY,
+          length: introLen,
+          opacity: introFocus * 0.85,
+          sx,
+        });
+        placeNode(introNode, { top: introY, opacity: introFocus, sx });
+
+        // ---- ENTRIES ----
+        // The long entry field slows each pass without native sticky release.
+        let active = null;
+        let activeRect = null;
+        let activeIdx = -1;
+        let activeFocus = 0;
+
+        entries.forEach((entry, i) => {
+          const r = entry.getBoundingClientRect();
+          const center = r.top + r.height / 2;
+          const delta = center - vc;
+          const dir = delta < 0 ? -1 : 1;
+          const abs = Math.abs(delta);
+          const depth = clamp(abs / (vh * 1.12));
+          const eased = depth * depth;
+          const focus = 1 - smoothstep(0.0, 1.08, abs / vc);
+          const presence = 1 - smoothstep(0.5, 1.34, depth);
+          const rollY = mobile ? dir * eased * 18 : dir * eased * 52;
+          const rollBlur = mobile ? eased * 0.9 : eased * 3.8;
+          const copyBlur = mobile ? eased * 0.6 : eased * 2.2;
+          const rollRotate = mobile ? dir * eased * 0.8 : dir * eased * 2.4;
+          const rollTilt = mobile ? 0 : dir * eased * 1.7;
+          const drift = mobile ? 0 : dir * eased * 12;
+          const parallax = mobile ? dir * eased * -3 : dir * eased * -10;
+          const scale = mobile ? 1.006 + eased * 0.004 : 1.018 + eased * 0.012;
+
+          entry.style.setProperty("--roll-opacity", clamp(presence * 1.1).toFixed(3));
+          entry.style.setProperty("--roll-y", `${rollY}px`);
+          entry.style.setProperty("--roll-scale", `${1 - eased * (mobile ? 0.012 : 0.03)}`);
+          entry.style.setProperty("--roll-blur", `${rollBlur}px`);
+          entry.style.setProperty("--copy-blur", `${copyBlur}px`);
+          entry.style.setProperty("--roll-rotate", `${rollRotate}deg`);
+          entry.style.setProperty("--roll-tilt", `${rollTilt}deg`);
+          entry.style.setProperty("--depth-z", `${Math.max(0, focus) * (mobile ? 8 : 42)}px`);
+          entry.style.setProperty("--depth-edge", `${(Math.max(0, focus) * (mobile ? 0.35 : 1)).toFixed(3)}`);
+          entry.style.setProperty("--drift", `${drift}px`);
+          entry.style.setProperty("--image-parallax", `${parallax}px`);
+          entry.style.setProperty("--image-scale", `${scale}`);
+          entry.style.setProperty("--scan-x", `${50 + dir * eased * 34}%`);
+
+          if (focus > activeFocus) {
+            activeFocus = focus;
+            active = entry;
+            activeRect = r;
+            activeIdx = i;
+          }
+        });
+
+        if (active && activeFocus > 0.012) {
+          const fr = active.querySelector(".photo-frame");
+          const cp = active.querySelector(".copy");
+          const activeMicro = active.querySelector(".micro")?.textContent || "Archive";
+          if (tiltPhoto !== fr) {
+            clearTilt(tiltPhoto);
+            tiltPhoto = fr;
+          }
+          applyTilt();
+          const archiveRect = archive.getBoundingClientRect();
+          const frRect = {
+            left: archiveRect.left + fr.offsetLeft,
+            top: archiveRect.top + active.offsetTop + fr.offsetTop,
+            width: fr.offsetWidth,
+            height: fr.offsetHeight,
+          };
+          const cpRect = {
+            left: archiveRect.left + cp.offsetLeft,
+            top: archiveRect.top + active.offsetTop + cp.offsetTop,
+            width: cp.offsetWidth,
+            height: cp.offsetHeight,
+          };
+          const fLeft = frRect.left;
+          const fTop = frRect.top;
+          const fW = frRect.width;
+          const side = fLeft + fW / 2 < sx ? "left" : "right";
+          const anchorY = clamp(fTop + 16, spineTop, spineBottom);
+          const reach = side === "left" ? sx - (fLeft + fW) : fLeft - sx;
+          const grown = Math.max(0, reach) * (0.34 + 0.66 * activeFocus);
+
+          placeLine(actLine, {
+            side,
+            top: anchorY,
+            length: grown,
+            opacity: activeFocus * 0.9,
+            sx,
+          });
+          placeNode(actNode, { top: anchorY, opacity: activeFocus, sx });
+
+          const cLeft = cpRect.left;
+          const cW = cpRect.width;
+          const copySide = cLeft + cW / 2 < sx ? "left" : "right";
+          const copyAnchorY = clamp(cpRect.top + cpRect.height - 10, spineTop, spineBottom);
+          const copyReach = copySide === "left" ? sx - (cLeft + cW) : cLeft - sx;
+          const copyGrown = Math.max(0, copyReach) * (0.28 + 0.72 * activeFocus);
+
+          placeLine(copyLine, {
+            side: copySide,
+            top: copyAnchorY,
+            length: copyGrown,
+            opacity: activeFocus * 0.44,
+            sx,
+          });
+          placeNode(copyNode, { top: copyAnchorY, opacity: activeFocus * 0.56, sx });
+
+          const num = String(activeIdx + 1).padStart(2, "0");
+          actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+          actIndex.style.top = `${anchorY - 1}px`;
+          actIndex.style.left =
+            side === "right" ? `${sx - 52}px` : `${sx + 12}px`;
+          actIndex.style.opacity = (activeFocus * 0.7).toFixed(3);
+          document.documentElement.style.setProperty("--dial-opacity", (activeFocus * 0.56).toFixed(3));
+          document.documentElement.style.setProperty("--dial-rot", `${activeIdx * 18 + activeFocus * 12}deg`);
+          document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeFocus * 0.08}`);
+          const readoutX = side === "right" ? sx - 150 : sx + 74;
+          const readoutAlign = side === "right" ? "right" : "left";
+          dialLabel.parentElement.style.left = `${readoutX}px`;
+          dialLabel.parentElement.style.textAlign = readoutAlign;
+          dialLabel.textContent = activeMicro;
+          dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+          setMobileLabel(`${num} / ${activeMicro}`);
+        } else {
+          actLine.style.opacity = "0";
+          actNode.style.opacity = "0";
+          actIndex.style.opacity = "0";
+          copyLine.style.opacity = "0";
+          copyNode.style.opacity = "0";
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+          clearTilt(tiltPhoto);
+          tiltPhoto = null;
+        }
+
+        // ---- ABOUT ----
+        const aRect = about.getBoundingClientRect();
+        const aInner = aboutInner.getBoundingClientRect();
+        const aTarget = aInner.top + 20;
+        const aAnchor = clamp(aTarget, spineTop, spineBottom);
+        const aCenter = aRect.top + aRect.height * 0.42;
+        const aAbs = Math.abs(aCenter - vc);
+        const aFocus = 1 - smoothstep(0.04, 0.92, aAbs / vc);
+        const aFade = aFocus * (1 - smoothstep(0, 150, Math.abs(aTarget - aAnchor)));
+        const aLen = (mobile ? 34 : 78) * (0.4 + 0.6 * aFocus);
+
+        placeLine(abtLine, {
+          side: mobile ? "right" : "left",
+          top: aAnchor,
+          length: aLen,
+          opacity: aFade * 0.85,
+          sx,
+        });
+        placeNode(abtNode, { top: aAnchor, opacity: aFade, sx });
+        if (aFade > 0.05) {
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+          setMobileLabel("About");
+        }
+
+        // ---- CONTACT ----
+        const cRect = contact.getBoundingClientRect();
+        const cInner = contactInner.getBoundingClientRect();
+        const cTarget = cInner.top + 20;
+        const cAnchor = clamp(cTarget, spineTop, spineBottom);
+        const cCenter = cRect.top + cRect.height * 0.34;
+        const cAbs = Math.abs(cCenter - vc);
+        const cFocus = 1 - smoothstep(0.04, 0.92, cAbs / vc);
+        const cFade = cFocus * (1 - smoothstep(0, 150, Math.abs(cTarget - cAnchor)));
+        const cLen = (mobile ? 34 : 78) * (0.4 + 0.6 * cFocus);
+
+        placeLine(conLine, {
+          side: "right",
+          top: cAnchor,
+          length: cLen,
+          opacity: cFade * 0.85,
+          sx,
+        });
+        placeNode(conNode, { top: cAnchor, opacity: cFade, sx });
+        if (cFade > 0.05) {
+          document.documentElement.style.setProperty("--dial-opacity", "0");
+          setMobileLabel("Contact");
         }
       };
 
-      // ── Scroll driver - no classList, no style on body ────────────
-      let ticking = false, scrollEndTimer = null;
+      let ticking = false;
       const onScroll = () => {
-        _scrolling = true;
-        clearTimeout(scrollEndTimer);
-        scrollEndTimer = setTimeout(() => { _scrolling = false; frame(); }, 80);
         if (ticking) return;
         ticking = true;
-        requestAnimationFrame(() => { ticking = false; frame(); });
+        requestAnimationFrame(() => {
+          ticking = false;
+          frame();
+        });
       };
 
       frame();
       document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", () => { setStableVars(); frame(); });
+      window.addEventListener("resize", () => {
+        syncArchiveMode();
+        onScroll();
+      });
     </script>
-
   </body>
 </html>
