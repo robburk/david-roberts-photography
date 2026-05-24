@@ -785,10 +785,27 @@
         .entry:nth-child(even) {
           --mobile-spine-local: 8px;
           --mobile-content-start: 46px;
+          --roll-opacity: 0;
+          --roll-y: 24px;
+          --roll-scale: 0.992;
+          --roll-blur: 0px;
+          --copy-blur: 0px;
+          --roll-rotate: 0deg;
+          --depth-z: 0px;
+          --depth-edge: 0;
+          --image-parallax: 0px;
+          --image-scale: 1.01;
           display: block;
           min-height: auto;
           padding: 7vh 0 6vh 46px;
           scroll-snap-align: none;
+        }
+
+        .entry.is-mobile-visible,
+        .entry:nth-child(even).is-mobile-visible {
+          --roll-opacity: 1;
+          --roll-y: 0px;
+          --roll-scale: 1;
         }
 
         .entry::before,
@@ -831,6 +848,10 @@
           aspect-ratio: 1.06 / 1;
           transform: translateY(var(--roll-y)) scale(var(--roll-scale))
             rotateX(var(--roll-rotate));
+          filter: none;
+          transition:
+            opacity 0.42s ease,
+            transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
           touch-action: pan-y;
         }
 
@@ -853,11 +874,15 @@
           position: relative;
           top: auto;
           max-width: none;
-          margin-top: 16px;
+          margin-top: 20px;
           padding-right: 10px;
           justify-self: auto;
           transform: translateY(calc(16px + var(--roll-y) * 0.46))
             scale(calc(var(--roll-scale) + 0.014));
+          filter: none;
+          transition:
+            opacity 0.42s ease 0.04s,
+            transform 0.48s cubic-bezier(0.22, 1, 0.36, 1) 0.04s;
         }
 
         .micro {
@@ -866,8 +891,8 @@
         }
 
         h2 {
-          font-size: clamp(1.18rem, 6vw, 1.72rem);
-          line-height: 1.08;
+          font-size: clamp(1.22rem, 5.4vw, 1.62rem);
+          line-height: 1.12;
         }
 
         .copy p:not(.micro):not(.caption) {
@@ -879,7 +904,9 @@
 
         .copy .caption {
           margin-top: 10px;
-          font-size: 0.76rem;
+          max-width: 22em;
+          font-size: 0.78rem;
+          line-height: 1.55;
         }
 
         .contact {
@@ -1533,9 +1560,13 @@
       };
       const isMobile = () =>
         window.matchMedia("(max-width: 820px)").matches;
-      document.body.classList.add("archive-horizontal");
-      document.documentElement.style.setProperty("--scene-count", entries.length + 3);
-      document.documentElement.style.scrollSnapType = "none";
+      const syncArchiveMode = () => {
+        const horizontal = !isMobile();
+        document.body.classList.toggle("archive-horizontal", horizontal);
+        document.documentElement.style.setProperty("--scene-count", entries.length + 3);
+        document.documentElement.style.scrollSnapType = "none";
+      };
+      syncArchiveMode();
       const spineX = () => {
         const raw = getComputedStyle(document.documentElement)
           .getPropertyValue("--spine-x")
@@ -1656,6 +1687,23 @@
       observer.observe(about);
       observer.observe(contact);
 
+      const mobileEntryObserver = new IntersectionObserver(
+        (obs) => {
+          obs.forEach((e) => {
+            const idx = entries.indexOf(e.target);
+            if (e.isIntersecting) {
+              e.target.classList.add("is-mobile-visible");
+              if (idx >= 0) {
+                const label = e.target.querySelector(".micro")?.textContent || "Archive";
+                setMobileLabel(`${String(idx + 1).padStart(2, "0")} / ${label}`);
+              }
+            }
+          });
+        },
+        { threshold: 0.18, rootMargin: "0px 0px -10% 0px" },
+      );
+      entries.forEach((entry) => mobileEntryObserver.observe(entry));
+
       // Place a connector line + node from a single set of geometry values.
       // length and top come from untransformed layout, never a moving rect.
       const placeLine = (line, { side, top, length, opacity, sx, orient = "horizontal" }) => {
@@ -1689,9 +1737,17 @@
       mobileJumpButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const dir = Number(button.dataset.mobileJump) || 1;
-          const current = Math.round(window.scrollY / (window.innerHeight * 0.82));
+          const current = isMobile()
+            ? mobileTargets.reduce((best, target, i) => {
+                const distance = Math.abs(target.getBoundingClientRect().top - window.innerHeight * 0.18);
+                return distance < best.distance ? { i, distance } : best;
+              }, { i: 0, distance: Infinity }).i
+            : Math.round(window.scrollY / (window.innerHeight * 0.82));
           const nextIndex = clamp(current + dir, 0, mobileTargets.length - 1);
-          window.scrollTo({ top: nextIndex * window.innerHeight * 0.82, behavior: "smooth" });
+          const top = isMobile()
+            ? mobileTargets[nextIndex].offsetTop - window.innerHeight * 0.08
+            : nextIndex * window.innerHeight * 0.82;
+          window.scrollTo({ top, behavior: "smooth" });
         });
       });
 
@@ -1833,6 +1889,19 @@
       const frame = () => {
         if (document.body.classList.contains("archive-horizontal")) {
           frameHorizontal();
+          return;
+        }
+        if (isMobile()) {
+          actLine.style.opacity = "0";
+          actNode.style.opacity = "0";
+          actIndex.style.opacity = "0";
+          copyLine.style.opacity = "0";
+          copyNode.style.opacity = "0";
+          abtLine.style.opacity = "0";
+          abtNode.style.opacity = "0";
+          conLine.style.opacity = "0";
+          conNode.style.opacity = "0";
+          document.documentElement.style.setProperty("--dial-opacity", "0");
           return;
         }
         const vh = window.innerHeight;
@@ -2069,7 +2138,10 @@
       frame();
       document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", onScroll);
+      window.addEventListener("resize", () => {
+        syncArchiveMode();
+        onScroll();
+      });
     </script>
   </body>
 </html>
