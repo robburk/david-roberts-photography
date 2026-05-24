@@ -1143,10 +1143,10 @@
         left: 50%;
         top: 0;
         width: 100vw;
-        height: 100svh;
+        height: var(--vh, 100svh);
         min-height: 0;
         padding: 0;
-        grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
+        grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(var(--vh, 100svh) - var(--h-spine-y)));
         align-items: stretch;
         opacity: var(--h-opacity, 0);
         transform: translateX(calc(-50% + var(--h-x, 0px))) scale(var(--h-scale, 1));
@@ -1285,7 +1285,7 @@
         .archive-horizontal .entry:nth-child(even) {
           display: grid;
           grid-template-columns: 1fr;
-          grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
+          grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(var(--vh, 100svh) - var(--h-spine-y)));
           width: 100vw;
           padding: 0;
         }
@@ -1917,6 +1917,9 @@
       const frameHorizontal = () => {
         const vh = window.innerHeight;
         const vw = window.innerWidth;
+        // Keep --vh in sync with window.innerHeight so CSS grid rows
+        // match JS spine position (svh != innerHeight on iOS Safari)
+        document.documentElement.style.setProperty("--vh", `${vh}px`);
         const mobile = isMobile();
         const scenes = [intro, ...entries, about, contact];
         const step = vh * (mobile ? 0.52 : 0.86);
@@ -2279,6 +2282,7 @@
         clearTimeout(scrollEndTimer);
         scrollEndTimer = setTimeout(() => {
           document.body.classList.remove("is-scrolling");
+          frame(); // redraw connectors + atmosphere now scroll is settled
         }, 80);
         if (ticking) return;
         ticking = true;
