@@ -1049,11 +1049,41 @@
         }
       }
 
-      /* Kill transitions during fast scroll so cards track instantly */
+      /* Kill transitions during fast scroll */
       body.is-scrolling .photo-frame,
       body.is-scrolling .copy,
-      body.is-scrolling .entry {
-        transition: none !important;
+      body.is-scrolling .entry { transition: none !important; }
+
+      /* Tap-to-reveal: mobile only */
+      @media (max-width: 820px) {
+        .archive-horizontal .photo-frame.is-revealed img {
+          object-fit: contain !important;
+          object-position: center !important;
+          background: #000;
+          transition: object-fit 0s;
+        }
+        .photo-frame.is-revealed::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.55);
+          z-index: 5;
+          pointer-events: none;
+        }
+        .reveal-hint {
+          position: absolute;
+          bottom: 14px;
+          right: 14px;
+          z-index: 6;
+          color: rgba(255,255,255,0.72);
+          font-size: 0.58rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .photo-frame:not(.is-revealed) .reveal-hint { opacity: 1; }
       }
 
       body.archive-horizontal {
@@ -1605,694 +1635,388 @@
     </main>
 
     <script>
-      const intro = document.querySelector(".intro");
-      const identity = document.querySelector(".identity");
-      const entries = Array.from(document.querySelectorAll(".entry"));
-      const archive = document.querySelector(".archive");
+      // ── DOM refs ──────────────────────────────────────────────────
+      const intro    = document.querySelector(".intro");
+      const entries  = Array.from(document.querySelectorAll(".entry"));
+      const about    = document.querySelector(".about");
+      const contact  = document.querySelector(".contact");
       const dialLabel = document.querySelector(".archive-readout__label");
       const dialCount = document.querySelector(".archive-readout__count");
-      const contact = document.querySelector(".contact");
-      const contactInner = document.querySelector(".contact__inner");
-      const about = document.querySelector(".about");
-      const aboutInner = document.querySelector(".about__inner");
-      const mobileStatus = document.querySelector(".mobile-status");
-      const mobileStatusLabel = document.querySelector(".mobile-status__label");
-      const mobileJumpButtons = Array.from(document.querySelectorAll("[data-mobile-jump]"));
-      const atmosphere = document.querySelector(".mobile-atmosphere");
-      const atmosphereLayers = Array.from(document.querySelectorAll(".mobile-atmosphere__layer"));
-      let atmosphereIndex = 0;
-      let atmosphereSrc = "";
-      let atmosTimer = null;
+      const mobileStatusLabel  = document.querySelector(".mobile-status__label");
+      const mobileJumpButtons  = Array.from(document.querySelectorAll("[data-mobile-jump]"));
+      const atmosphere         = document.querySelector(".mobile-atmosphere");
+      const atmosphereLayers   = Array.from(document.querySelectorAll(".mobile-atmosphere__layer"));
+      const introLine  = document.querySelector(".conn-line.is-intro");
+      const introNode  = document.querySelector(".conn-node.is-intro");
+      const actLine    = document.querySelector(".conn-line.is-active");
+      const actNode    = document.querySelector(".conn-node.is-active");
+      const actIndex   = document.querySelector(".conn-index");
+      const copyLine   = document.querySelector(".conn-line.is-copy");
+      const copyNode   = document.querySelector(".conn-node.is-copy");
+      const conLine    = document.querySelector(".conn-line.is-contact");
+      const conNode    = document.querySelector(".conn-node.is-contact");
+      const abtLine    = document.querySelector(".conn-line.is-about");
+      const abtNode    = document.querySelector(".conn-node.is-about");
+      const cursorDot  = document.querySelector(".cursor-dot");
+      const cursorRing = document.querySelector(".cursor-ring");
 
-      const drawCanvas = (canvas, src, onDone) => {
-        const img = new Image();
-        img.onload = () => {
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          onDone && onDone();
-        };
-        img.src = src;
-      };
+      // ── Helpers ───────────────────────────────────────────────────
+      const clamp = (v, a = 0, b = 1) => Math.min(Math.max(v, a), b);
+      const ss = (e0, e1, v) => { const x = clamp((v-e0)/(e1-e0)); return x*x*(3-2*x); };
 
-      const introLine = document.querySelector(".conn-line.is-intro");
-      const introNode = document.querySelector(".conn-node.is-intro");
-      const actLine = document.querySelector(".conn-line.is-active");
-      const actNode = document.querySelector(".conn-node.is-active");
-      const actIndex = document.querySelector(".conn-index");
-      const copyLine = document.querySelector(".conn-line.is-copy");
-      const copyNode = document.querySelector(".conn-node.is-copy");
-      const conLine = document.querySelector(".conn-line.is-contact");
-      const conNode = document.querySelector(".conn-node.is-contact");
-      const abtLine = document.querySelector(".conn-line.is-about");
-      const abtNode = document.querySelector(".conn-node.is-about");
+      // Cache isMobile - recheck only on resize
+      let _mobile = window.innerWidth <= 820;
+      const isMobile = () => _mobile;
 
-      document.querySelectorAll(".photo-frame > img").forEach((img) => {
+      // ── Wrap imgs in clip spans (needed for image-clip CSS) ───────
+      document.querySelectorAll(".photo-frame > img").forEach(img => {
         const clip = document.createElement("span");
         clip.className = "image-clip";
         img.replaceWith(clip);
         clip.appendChild(img);
+
+        // Add hint label
+        const hint = document.createElement("span");
+        hint.className = "reveal-hint";
+        hint.textContent = "View";
+        img.parentElement.parentElement.appendChild(hint);
       });
 
-      const clamp = (v, a = 0, b = 1) => Math.min(Math.max(v, a), b);
-      const smoothstep = (e0, e1, v) => {
-        const x = clamp((v - e0) / (e1 - e0));
-        return x * x * (3 - 2 * x);
+      // ── Tap-to-reveal ─────────────────────────────────────────────
+      let revealTimer = null;
+      document.querySelectorAll(".photo-frame").forEach(frame => {
+        frame.addEventListener("click", e => {
+          if (!isMobile()) return;
+          // Ignore if this was a swipe rather than a tap
+          if (Math.abs(swipeDX) > 8) return;
+          clearTimeout(revealTimer);
+          frame.classList.toggle("is-revealed");
+          if (frame.classList.contains("is-revealed")) {
+            // Auto-collapse after 4s if user forgets to tap again
+            revealTimer = setTimeout(() => frame.classList.remove("is-revealed"), 4000);
+          }
+        }, { passive: true });
+      });
+
+      // ── Canvas atmosphere ─────────────────────────────────────────
+      let atmosIndex = 0, atmosSrc = "", atmosTimer = null;
+      const drawCanvas = (canvas, src, cb) => {
+        const img = new Image();
+        img.onload = () => { canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height); cb&&cb(); };
+        img.src = src;
       };
-      const isMobile = () =>
-        window.matchMedia("(max-width: 820px)").matches;
-      const setMobileAtmosphere = (src, focus = 1, progress = 1) => {
+      const setMobileAtmosphere = (src, focus, progress) => {
         if (!atmosphere || !atmosphereLayers.length || !src) return;
-        const fadeIn = clamp(smoothstep(0.15, 0.85, progress));
+        const fadeIn = clamp(ss(0.15, 0.85, progress));
         atmosphere.style.opacity = (fadeIn * (0.1 + clamp(focus) * 0.14)).toFixed(3);
-        if (src === atmosphereSrc) return;
-        atmosphereSrc = src;
+        if (src === atmosSrc) return;
+        atmosSrc = src;
         clearTimeout(atmosTimer);
         atmosTimer = setTimeout(() => {
-          const next = atmosphereLayers[1 - atmosphereIndex];
-          const prev = atmosphereLayers[atmosphereIndex];
+          const next = atmosphereLayers[1 - atmosIndex];
+          const prev = atmosphereLayers[atmosIndex];
           drawCanvas(next, src, () => {
             next.classList.add("is-active");
             prev.classList.remove("is-active");
-            atmosphereIndex = 1 - atmosphereIndex;
+            atmosIndex = 1 - atmosIndex;
           });
-        }, 80);
+        }, 100);
       };
-      const clearMobileAtmosphere = () => {
-        if (atmosphere) atmosphere.style.opacity = "0";
-      };
-      const syncArchiveMode = () => {
-        document.body.classList.add("archive-horizontal");
-        document.documentElement.style.setProperty("--scene-count", entries.length + 3);
-        document.documentElement.style.scrollSnapType = "none";
-      };
-      syncArchiveMode();
-      const spineX = () => {
-        const raw = getComputedStyle(document.documentElement)
-          .getPropertyValue("--spine-x")
-          .trim();
-        if (raw.endsWith("%")) {
-          return window.innerWidth * (parseFloat(raw) / 100);
-        }
-        return parseFloat(raw) || window.innerWidth / 2;
-      };
+      const clearAtmosphere = () => { if (atmosphere) atmosphere.style.opacity = "0"; };
 
-      const cursorDot = document.querySelector(".cursor-dot");
-      const cursorRing = document.querySelector(".cursor-ring");
+      // ── Bootstrap ─────────────────────────────────────────────────
+      document.body.classList.add("archive-horizontal");
+      document.documentElement.style.setProperty("--scene-count", entries.length + 3);
+
+      // ── Custom cursor (desktop fine-pointer only) ─────────────────
       const finePointer = window.matchMedia("(pointer: fine)");
-      let cursorX = window.innerWidth / 2;
-      let cursorY = window.innerHeight / 2;
-      let ringX = cursorX;
-      let ringY = cursorY;
-
+      let cursorX = innerWidth/2, cursorY = innerHeight/2;
+      let ringX = cursorX, ringY = cursorY;
       const moveCursor = () => {
-        if (!finePointer.matches || !cursorDot || !cursorRing) return;
+        if (!finePointer.matches) return;
         ringX += (cursorX - ringX) * 0.22;
         ringY += (cursorY - ringY) * 0.22;
-        cursorDot.style.transform =
-          `translate3d(${cursorX}px, ${cursorY}px, 0) translate3d(-50%, -50%, 0)`;
-        cursorRing.style.transform =
-          `translate3d(${ringX}px, ${ringY}px, 0) translate3d(-50%, -50%, 0)`;
+        cursorDot.style.transform  = `translate3d(${cursorX}px,${cursorY}px,0) translate3d(-50%,-50%,0)`;
+        cursorRing.style.transform = `translate3d(${ringX}px,${ringY}px,0) translate3d(-50%,-50%,0)`;
         requestAnimationFrame(moveCursor);
       };
-
       if (finePointer.matches && cursorDot && cursorRing) {
         document.body.classList.add("has-cursor");
         requestAnimationFrame(moveCursor);
-
-        window.addEventListener(
-          "pointermove",
-          (e) => {
-            cursorX = e.clientX;
-            cursorY = e.clientY;
-            document.body.classList.add("has-cursor");
-          },
-          { passive: true },
-        );
-
-        window.addEventListener("pointerdown", (e) => {
+        window.addEventListener("pointermove", e => {
+          cursorX = e.clientX; cursorY = e.clientY;
+          document.body.classList.add("has-cursor");
+        }, { passive: true });
+        window.addEventListener("pointerdown", e => {
           document.body.classList.add("cursor-click");
-          const ripple = document.createElement("span");
-          ripple.className = "cursor-ripple";
-          ripple.style.left = `${e.clientX}px`;
-          ripple.style.top = `${e.clientY}px`;
-          document.body.appendChild(ripple);
-          ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+          const r = document.createElement("span");
+          r.className = "cursor-ripple";
+          r.style.cssText = `left:${e.clientX}px;top:${e.clientY}px`;
+          document.body.appendChild(r);
+          r.addEventListener("animationend", () => r.remove(), { once: true });
         });
-
-        window.addEventListener("pointerup", () => {
-          document.body.classList.remove("cursor-click");
+        window.addEventListener("pointerup", () => document.body.classList.remove("cursor-click"));
+        document.addEventListener("pointerover", e => {
+          if (e.target.closest("a,button,[role='button']")) document.body.classList.add("cursor-link");
         });
-
-        document.addEventListener("pointerover", (e) => {
-          if (e.target.closest("a, button, [role='button']")) {
-            document.body.classList.add("cursor-link");
-          }
-        });
-
-        document.addEventListener("pointerout", (e) => {
-          if (e.target.closest("a, button, [role='button']")) {
-            document.body.classList.remove("cursor-link");
-          }
+        document.addEventListener("pointerout", e => {
+          if (e.target.closest("a,button,[role='button']")) document.body.classList.remove("cursor-link");
         });
       }
 
-      // ---- 2.5D pointer parallax (desktop only) ----
-      // Only the centered photo tilts toward the cursor; the image surface
-      // shifts the opposite way inside its frame, which reads as real depth.
-      let ptrX = 0;
-      let ptrY = 0;
-      let tiltPhoto = null;
+      // ── 2.5D tilt (desktop only) ──────────────────────────────────
+      let ptrX = 0, ptrY = 0, tiltPhoto = null;
       const applyTilt = () => {
         if (!tiltPhoto || isMobile()) return;
         tiltPhoto.style.setProperty("--ptr-ry", `${ptrX * 5.5}deg`);
         tiltPhoto.style.setProperty("--ptr-rx", `${-ptrY * 4.5}deg`);
         const img = tiltPhoto.querySelector("img");
-        if (img) {
-          img.style.setProperty("--img-px", `${-ptrX * 16}px`);
-          img.style.setProperty("--img-py", `${-ptrY * 12}px`);
-        }
+        if (img) { img.style.setProperty("--img-px", `${-ptrX*16}px`); img.style.setProperty("--img-py", `${-ptrY*12}px`); }
       };
-      const clearTilt = (photo) => {
-        if (!photo) return;
-        photo.style.setProperty("--ptr-ry", "0deg");
-        photo.style.setProperty("--ptr-rx", "0deg");
-        const img = photo.querySelector("img");
-        if (img) {
-          img.style.setProperty("--img-px", "0px");
-          img.style.setProperty("--img-py", "0px");
-        }
+      const clearTilt = ph => {
+        if (!ph) return;
+        ph.style.setProperty("--ptr-ry","0deg"); ph.style.setProperty("--ptr-rx","0deg");
+        const img = ph.querySelector("img");
+        if (img) { img.style.setProperty("--img-px","0px"); img.style.setProperty("--img-py","0px"); }
       };
-      window.addEventListener(
-        "mousemove",
-        (e) => {
-          ptrX = e.clientX / window.innerWidth - 0.5;
-          ptrY = e.clientY / window.innerHeight - 0.5;
-          applyTilt();
-        },
-        { passive: true },
-      );
+      window.addEventListener("mousemove", e => {
+        ptrX = e.clientX/innerWidth - 0.5;
+        ptrY = e.clientY/innerHeight - 0.5;
+        applyTilt();
+      }, { passive: true });
 
-      const observer = new IntersectionObserver(
-        (obs) => {
-          obs.forEach((e) => {
-            if (e.isIntersecting) {
-              e.target.classList.add("is-visible");
-              observer.unobserve(e.target);
-            }
-          });
-        },
-        { threshold: 0.26, rootMargin: "0px 0px -12% 0px" },
-      );
-      observer.observe(about);
-      observer.observe(contact);
+      // ── Intersection observers (desktop non-horizontal mode) ──────
+      const visObserver = new IntersectionObserver(obs => {
+        obs.forEach(e => { if (e.isIntersecting) { e.target.classList.add("is-visible"); visObserver.unobserve(e.target); } });
+      }, { threshold: 0.26 });
+      visObserver.observe(about); visObserver.observe(contact);
 
-      const mobileEntryObserver = new IntersectionObserver(
-        (obs) => {
-          obs.forEach((e) => {
-            const idx = entries.indexOf(e.target);
-            if (e.isIntersecting) {
-              e.target.classList.add("is-mobile-visible");
-              if (idx >= 0) {
-                const label = e.target.querySelector(".micro")?.textContent || "Archive";
-                setMobileLabel(`${String(idx + 1).padStart(2, "0")} / ${label}`);
-              }
-            }
-          });
-        },
-        { threshold: 0.18, rootMargin: "0px 0px -10% 0px" },
-      );
-      entries.forEach((entry) => mobileEntryObserver.observe(entry));
-
-      // Place a connector line + node from a single set of geometry values.
-      // length and top come from untransformed layout, never a moving rect.
-      const placeLine = (line, { side, top, length, opacity, sx, orient = "horizontal" }) => {
+      // ── Connectors helper ─────────────────────────────────────────
+      const placeLine = (line, { side, top, length, opacity, sx, orient="horizontal" }) => {
         const len = Math.max(0, length);
         line.dataset.orient = orient;
         if (orient === "vertical") {
           line.dataset.side = side;
-          line.style.left = `${sx}px`;
-          line.style.top = `${side === "up" ? top - len : top}px`;
-          line.style.width = "1px";
-          line.style.height = `${len}px`;
+          line.style.cssText += `left:${sx}px;top:${side==="up"?top-len:top}px;width:1px;height:${len}px;opacity:${opacity.toFixed(3)}`;
         } else {
           line.dataset.side = side;
-          line.style.top = `${top}px`;
-          line.style.left = `${side === "left" ? sx - len : sx}px`;
-          line.style.width = `${len}px`;
-          line.style.height = "1px";
+          line.style.cssText += `top:${top}px;left:${side==="left"?sx-len:sx}px;width:${len}px;height:1px;opacity:${opacity.toFixed(3)}`;
         }
-        line.style.opacity = opacity.toFixed(3);
       };
       const placeNode = (node, { top, opacity, sx }) => {
         node.style.left = `${sx}px`;
-        node.style.top = `${top}px`;
+        node.style.top  = `${top}px`;
         node.style.opacity = opacity.toFixed(3);
       };
-      const mobileTargets = [intro, ...entries, about, contact];
-      const setMobileLabel = (text) => {
-        if (mobileStatusLabel) mobileStatusLabel.textContent = text;
-      };
+      const setLabel = t => { if (mobileStatusLabel) mobileStatusLabel.textContent = t; };
 
-      mobileJumpButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const dir = Number(button.dataset.mobileJump) || 1;
-          const step = window.innerHeight * (isMobile() ? 0.52 : 0.86);
-          const scenes = [intro, ...entries, about, contact];
-          const current = Math.round(window.scrollY / step);
-          const next = clamp(current + dir, 0, scenes.length - 1);
-          window.scrollTo({ top: next * step, behavior: "smooth" });
+      // ── Nav buttons ───────────────────────────────────────────────
+      const scenes = [intro, ...entries, about, contact];
+      mobileJumpButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const dir  = Number(btn.dataset.mobileJump) || 1;
+          const step = innerHeight * (isMobile() ? 0.52 : 0.86);
+          const cur  = Math.round(scrollY / step);
+          window.scrollTo({ top: clamp(cur + dir, 0, scenes.length - 1) * step, behavior: "smooth" });
         });
       });
 
-      // Swipe left/right on mobile maps to scroll up/down (horizontal Rolodex)
-      let swipeStartX = 0;
-      let swipeStartY = 0;
-      let swipeStartScroll = 0;
-      let isSwiping = false;
-
-      window.addEventListener("touchstart", (e) => {
+      // ── Swipe L/R → scroll ────────────────────────────────────────
+      let swipeStartX = 0, swipeStartY = 0, swipeStartScroll = 0, swipeDX = 0, isSwiping = false;
+      window.addEventListener("touchstart", e => {
         if (!isMobile()) return;
         swipeStartX = e.touches[0].clientX;
         swipeStartY = e.touches[0].clientY;
-        swipeStartScroll = window.scrollY;
+        swipeStartScroll = scrollY;
+        swipeDX = 0;
         isSwiping = true;
       }, { passive: true });
-
-      window.addEventListener("touchmove", (e) => {
+      window.addEventListener("touchmove", e => {
         if (!isMobile() || !isSwiping) return;
-        const dx = swipeStartX - e.touches[0].clientX;
+        swipeDX = swipeStartX - e.touches[0].clientX;
         const dy = swipeStartY - e.touches[0].clientY;
-        // Only intercept if clearly horizontal swipe
-        if (Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) > 12) {
-          const step = window.innerHeight * 0.52;
-          window.scrollTo({ top: swipeStartScroll + dx * (step / window.innerWidth * 2.2), behavior: "instant" });
+        if (Math.abs(swipeDX) > Math.abs(dy) * 1.4 && Math.abs(swipeDX) > 8) {
+          const step = innerHeight * 0.52;
+          window.scrollTo({ top: swipeStartScroll + swipeDX * (step / innerWidth * 2.2), behavior: "instant" });
         }
       }, { passive: true });
-
       window.addEventListener("touchend", () => { isSwiping = false; }, { passive: true });
 
+      // ── Scroll state ──────────────────────────────────────────────
       const isScrolling = () => document.body.classList.contains("is-scrolling");
 
+      // ── Scene positioning ─────────────────────────────────────────
       const setScene = (el, delta, active) => {
         const abs = Math.abs(delta);
         el.classList.toggle("is-h-active", active);
-        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 0.88, 960)}px`);
+        el.style.setProperty("--h-x", `${delta * Math.min(innerWidth * 0.88, 960)}px`);
         if (isScrolling()) {
-          // Binary during scroll - active snaps in, everything else snaps out
           el.style.setProperty("--h-opacity", active ? "1" : "0");
           el.style.setProperty("--h-scale", "1");
         } else {
-          const focus = 1 - smoothstep(0.02, 0.72, abs);
-          el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
-          el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
+          const f = 1 - ss(0.02, 0.72, abs);
+          el.style.setProperty("--h-opacity", clamp(f * 1.18).toFixed(3));
+          el.style.setProperty("--h-scale", `${1 - ss(0.3, 1.1, abs) * 0.035}`);
         }
-        return 1 - smoothstep(0.02, 0.72, abs);
+        return 1 - ss(0.02, 0.72, abs);
       };
 
-      const frameHorizontal = () => {
-        const vh = window.innerHeight;
-        const vw = window.innerWidth;
-        // Keep --vh in sync with window.innerHeight so CSS grid rows
-        // match JS spine position (svh != innerHeight on iOS Safari)
+      // ── Main frame loop ───────────────────────────────────────────
+      const frame = () => {
+        const vh = innerHeight;
+        const vw = innerWidth;
+        const mob = isMobile();
+
+        // Keep --vh synced so CSS grid rows match JS spine (svh ≠ innerHeight on iOS)
         document.documentElement.style.setProperty("--vh", `${vh}px`);
-        const mobile = isMobile();
-        const scenes = [intro, ...entries, about, contact];
-        const step = vh * (mobile ? 0.52 : 0.86);
-        const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
+
+        const step     = vh * (mob ? 0.52 : 0.86);
+        const progress = clamp(scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        const spineY = vh * (mobile ? 0.76 : 0.80);
-        const sx = vw / 2;
+        const spineY   = vh * (mob ? 0.76 : 0.80);
+        const sx       = vw / 2;
 
-        scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
+        // Position all scenes
+        scenes.forEach((s, i) => setScene(s, i - progress, i === activeIdx));
 
-        const idDelta = 0 - progress;
-        const idFocus = 1 - smoothstep(0.05, 0.96, Math.abs(idDelta));
+        // ── Intro fade ──
+        const idAbs   = Math.abs(0 - progress);
+        const idFocus = 1 - ss(0.05, 0.96, idAbs);
         intro.style.setProperty("--intro-opacity", clamp(idFocus).toFixed(3));
-        intro.style.setProperty("--intro-blur", `${smoothstep(0.45, 1, Math.abs(idDelta)) * 5}px`);
+        intro.style.setProperty("--intro-blur",    `${ss(0.45,1,idAbs)*5}px`);
+        intro.style.setProperty("--intro-scale",   `${0.985 + idFocus*0.015}`);
         intro.style.setProperty("--intro-y", "0px");
-        intro.style.setProperty("--intro-scale", `${0.985 + idFocus * 0.015}`);
 
-        const introLen = (mobile ? 46 : 70) * (0.35 + 0.65 * idFocus);
-        placeLine(introLine, {
-          side: "down",
-          top: spineY,
-          length: introLen,
-          opacity: idFocus * 0.85,
-          sx,
-          orient: "vertical",
-        });
-        placeNode(introNode, { top: spineY, opacity: idFocus, sx });
+        if (!isScrolling()) {
+          placeLine(introLine, { side:"down", top:spineY, length:(mob?46:70)*(0.35+0.65*idFocus), opacity:idFocus*0.85, sx, orient:"vertical" });
+          placeNode(introNode, { top:spineY, opacity:idFocus, sx });
+        }
 
-        let activeEntry = null;
-        let activeEntryFocus = 0;
-        let activeEntryIndex = -1;
+        // ── Entry animation vars ──
+        let activeEntry = null, activeEntryFocus = 0, activeEntryIndex = -1;
 
         entries.forEach((entry, i) => {
           const delta = i + 1 - progress;
-          const abs = Math.abs(delta);
-          const dir = delta < 0 ? -1 : 1;
+          const abs   = Math.abs(delta);
+          const dir   = delta < 0 ? -1 : 1;
           const eased = Math.min(1, abs) ** 2;
-          const focus = 1 - smoothstep(0.02, 0.72, abs);
-          const presence = 1 - smoothstep(0.32, 0.88, abs);
+          const focus = 1 - ss(0.02, 0.72, abs);
 
-          entry.style.setProperty("--roll-opacity", clamp(presence * 1.12).toFixed(3));
-          entry.style.setProperty("--roll-y", `${dir * eased * (mobile ? 4 : 16)}px`);
-          entry.style.setProperty("--roll-scale", `${1 - eased * (mobile ? 0.003 : 0.018)}`);
-          entry.style.setProperty("--roll-blur", `${mobile ? 0 : eased * 2.2}px`);
-          entry.style.setProperty("--copy-blur", `${mobile ? 0 : eased * 1.3}px`);
-          entry.style.setProperty("--roll-rotate", `${mobile ? 0 : dir * eased * 0.9}deg`);
-          entry.style.setProperty("--roll-tilt", `${dir * eased * (mobile ? 0 : 1.1)}deg`);
-          entry.style.setProperty("--depth-z", `${Math.max(0, focus) * (mobile ? 0 : 32)}px`);
-          entry.style.setProperty("--depth-edge", `${(Math.max(0, focus) * (mobile ? 0.08 : 0.82)).toFixed(3)}`);
-          entry.style.setProperty("--drift", "0px");
-          entry.style.setProperty("--image-parallax", `${dir * eased * (mobile ? -1 : -5)}px`);
-          entry.style.setProperty("--image-scale", `${mobile ? 1.001 : 1.003 + eased * 0.004}`);
-          entry.style.setProperty("--scan-x", `${50 + dir * eased * 22}%`);
+          // Mobile: only set vars that actually change appearance on mobile
+          if (mob) {
+            entry.style.setProperty("--roll-opacity", clamp((1 - ss(0.32,0.88,abs)) * 1.12).toFixed(3));
+            entry.style.setProperty("--roll-y",       `${dir * eased * 3}px`);
+            entry.style.setProperty("--roll-scale",   `${1 - eased * 0.002}`);
+            // skip blur/rotate/tilt/depth/parallax/scan-x on mobile - zero effect, pure cost
+          } else {
+            entry.style.setProperty("--roll-opacity", clamp((1-ss(0.32,0.88,abs))*1.12).toFixed(3));
+            entry.style.setProperty("--roll-y",       `${dir*eased*16}px`);
+            entry.style.setProperty("--roll-scale",   `${1-eased*0.018}`);
+            entry.style.setProperty("--roll-blur",    `${eased*2.2}px`);
+            entry.style.setProperty("--copy-blur",    `${eased*1.3}px`);
+            entry.style.setProperty("--roll-rotate",  `${dir*eased*0.9}deg`);
+            entry.style.setProperty("--roll-tilt",    `${dir*eased*1.1}deg`);
+            entry.style.setProperty("--depth-z",      `${Math.max(0,focus)*32}px`);
+            entry.style.setProperty("--depth-edge",   `${(Math.max(0,focus)*0.82).toFixed(3)}`);
+            entry.style.setProperty("--image-parallax",`${dir*eased*-5}px`);
+            entry.style.setProperty("--image-scale",  `${1.003+eased*0.004}`);
+            entry.style.setProperty("--scan-x",       `${50+dir*eased*22}%`);
+          }
 
           if (focus > activeEntryFocus) {
-            activeEntry = entry;
-            activeEntryFocus = focus;
-            activeEntryIndex = i;
+            activeEntry = entry; activeEntryFocus = focus; activeEntryIndex = i;
           }
         });
 
+        // ── Active entry connectors + atmosphere (skipped while scrolling) ──
         if (activeEntry && activeEntryFocus > 0.05) {
-          const activeMicro = activeEntry.querySelector(".micro")?.textContent || "Archive";
-          const num = String(activeEntryIndex + 1).padStart(2, "0");
-          setMobileLabel(`${num} / ${activeMicro}`);
+          const micro  = activeEntry.querySelector(".micro")?.textContent || "Archive";
+          const num    = String(activeEntryIndex + 1).padStart(2, "0");
+          const total  = String(entries.length).padStart(2, "0");
+          setLabel(`${num} / ${micro}`);
 
-          // Skip expensive connector/atmosphere work while flicking
           if (!isScrolling()) {
-            const fr = activeEntry.querySelector(".photo-frame");
-            const cp = activeEntry.querySelector(".copy");
-            const activeImg = fr.querySelector("img");
-            const frRect = fr.getBoundingClientRect();
-            const cpRect = cp.getBoundingClientRect();
-            const imageX = frRect.left + frRect.width / 2;
-            const imageLen = Math.max(0, spineY - frRect.bottom);
-            const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
-            const copyLen = Math.max(0, cpRect.top - spineY);
-            const lineFocus = activeEntryFocus ** 1.35;
+            const fr      = activeEntry.querySelector(".photo-frame");
+            const cp      = activeEntry.querySelector(".copy");
+            const img     = fr.querySelector("img");
+            const frRect  = fr.getBoundingClientRect();
+            const cpRect  = cp.getBoundingClientRect();
+            const imgX    = frRect.left + frRect.width / 2;
+            const imgLen  = Math.max(0, spineY - frRect.bottom);
+            const cpX     = cpRect.left + cpRect.width * (mob ? 0.34 : 0.5);
+            const cpLen   = Math.max(0, cpRect.top - spineY);
+            const lf      = activeEntryFocus ** 1.35;
 
-            placeLine(actLine, { side: "up", top: spineY, length: imageLen * lineFocus, opacity: activeEntryFocus * 0.86, sx: imageX, orient: "vertical" });
-            placeNode(actNode, { top: spineY, opacity: activeEntryFocus, sx: imageX });
-            placeLine(copyLine, { side: "down", top: spineY, length: copyLen * lineFocus, opacity: activeEntryFocus * 0.38, sx: copyX, orient: "vertical" });
-            placeNode(copyNode, { top: spineY, opacity: activeEntryFocus * 0.48, sx: copyX });
+            placeLine(actLine, { side:"up",   top:spineY, length:imgLen*lf, opacity:activeEntryFocus*0.86, sx:imgX, orient:"vertical" });
+            placeNode(actNode, { top:spineY, opacity:activeEntryFocus, sx:imgX });
+            placeLine(copyLine,{ side:"down", top:spineY, length:cpLen*lf,  opacity:activeEntryFocus*0.38, sx:cpX,  orient:"vertical" });
+            placeNode(copyNode,{ top:spineY, opacity:activeEntryFocus*0.48, sx:cpX });
 
-            actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
-            actIndex.style.top = `${spineY + 11}px`;
-            actIndex.style.left = `${imageX + 12}px`;
-            actIndex.style.opacity = (activeEntryFocus * 0.65).toFixed(3);
-            document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus * 0.44).toFixed(3));
-            document.documentElement.style.setProperty("--dial-rot", `${activeEntryIndex * 18 + activeEntryFocus * 12}deg`);
-            document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeEntryFocus * 0.08}`);
-            dialLabel.parentElement.style.left = `${sx + (mobile ? 42 : 86)}px`;
-            dialLabel.parentElement.style.top = `${spineY - (mobile ? 92 : 124)}px`;
-            dialLabel.textContent = activeMicro;
-            dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
-            if (activeImg) {
-              setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus, progress);
+            actIndex.textContent  = `${num} / ${total}`;
+            actIndex.style.top    = `${spineY+11}px`;
+            actIndex.style.left   = `${imgX+12}px`;
+            actIndex.style.opacity = (activeEntryFocus*0.65).toFixed(3);
+
+            if (!mob) {
+              document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus*0.44).toFixed(3));
+              document.documentElement.style.setProperty("--dial-rot",     `${activeEntryIndex*18+activeEntryFocus*12}deg`);
+              document.documentElement.style.setProperty("--dial-scale",   `${0.92+activeEntryFocus*0.08}`);
+              dialLabel.parentElement.style.left = `${sx+86}px`;
+              dialLabel.parentElement.style.top  = `${spineY-124}px`;
+              dialLabel.textContent = micro;
+              dialCount.textContent = `${num} / ${total}`;
+              // Update tilt target
+              if (tiltPhoto && tiltPhoto !== fr) clearTilt(tiltPhoto);
+              tiltPhoto = fr;
+              applyTilt();
             }
+
+            if (img) setMobileAtmosphere(img.currentSrc || img.getAttribute("src") || img.src, activeEntryFocus, progress);
           }
         } else {
-          actLine.style.opacity = "0";
-          actNode.style.opacity = "0";
-          actIndex.style.opacity = "0";
-          copyLine.style.opacity = "0";
-          copyNode.style.opacity = "0";
-          document.documentElement.style.setProperty("--dial-opacity", "0");
-          clearMobileAtmosphere();
+          actLine.style.opacity = actNode.style.opacity = actIndex.style.opacity = "0";
+          copyLine.style.opacity = copyNode.style.opacity = "0";
+          if (!mob) document.documentElement.style.setProperty("--dial-opacity","0");
+          clearAtmosphere();
         }
 
-        const aboutFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 1 - progress)));
-        const contactFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 2 - progress)));
-        if (aboutFocus > 0.2) setMobileLabel("About");
-        if (contactFocus > 0.2) setMobileLabel("Contact");
-      };
-
-      const frame = () => {
-        if (document.body.classList.contains("archive-horizontal")) {
-          frameHorizontal();
-          return;
-        }
-        if (isMobile()) {
-          actLine.style.opacity = "0";
-          actNode.style.opacity = "0";
-          actIndex.style.opacity = "0";
-          copyLine.style.opacity = "0";
-          copyNode.style.opacity = "0";
-          abtLine.style.opacity = "0";
-          abtNode.style.opacity = "0";
-          conLine.style.opacity = "0";
-          conNode.style.opacity = "0";
-          document.documentElement.style.setProperty("--dial-opacity", "0");
-          return;
-        }
-        const vh = window.innerHeight;
-        const vc = vh / 2;
-        const range = Math.min(vh * 0.62, 560);
-        const spineTop = vc - range / 2;
-        const spineBottom = vc + range / 2;
-        const sx = spineX();
-        const mobile = isMobile();
-
-        // ---- INTRO ----
-        const introRect = intro.getBoundingClientRect();
-        const idCenter = introRect.top + introRect.height * 0.46;
-        const idDelta = idCenter - vc;
-        const idAbs = Math.abs(idDelta) / vc;
-        const idDepth = clamp(Math.abs(idDelta) / (vh * 0.7));
-        const idDir = idDelta < 0 ? -1 : 1;
-        const introFocus = 1 - smoothstep(0.02, 0.92, idAbs);
-
-        intro.style.setProperty(
-          "--intro-opacity",
-          (1 - smoothstep(0.05, 0.95, idDepth)).toFixed(3),
-        );
-        intro.style.setProperty(
-          "--intro-blur",
-          `${smoothstep(0.3, 1, idDepth) * 5}px`,
-        );
-        intro.style.setProperty(
-          "--intro-y",
-          `${idDir * idDepth * idDepth * 60}px`,
-        );
-        intro.style.setProperty("--intro-scale", `${1 - idDepth * 0.03}`);
-
-        const introY = clamp(idCenter, spineTop, spineBottom);
-        const introLen = (mobile ? 52 : 76) * (0.4 + 0.6 * introFocus);
-        placeLine(introLine, {
-          side: "right",
-          top: introY,
-          length: introLen,
-          opacity: introFocus * 0.85,
-          sx,
-        });
-        placeNode(introNode, { top: introY, opacity: introFocus, sx });
-
-        // ---- ENTRIES ----
-        // The long entry field slows each pass without native sticky release.
-        let active = null;
-        let activeRect = null;
-        let activeIdx = -1;
-        let activeFocus = 0;
-
-        entries.forEach((entry, i) => {
-          const r = entry.getBoundingClientRect();
-          const center = r.top + r.height / 2;
-          const delta = center - vc;
-          const dir = delta < 0 ? -1 : 1;
-          const abs = Math.abs(delta);
-          const depth = clamp(abs / (vh * 1.12));
-          const eased = depth * depth;
-          const focus = 1 - smoothstep(0.0, 1.08, abs / vc);
-          const presence = 1 - smoothstep(0.5, 1.34, depth);
-          const rollY = mobile ? dir * eased * 18 : dir * eased * 52;
-          const rollBlur = mobile ? eased * 0.9 : eased * 3.8;
-          const copyBlur = mobile ? eased * 0.6 : eased * 2.2;
-          const rollRotate = mobile ? dir * eased * 0.8 : dir * eased * 2.4;
-          const rollTilt = mobile ? 0 : dir * eased * 1.7;
-          const drift = mobile ? 0 : dir * eased * 12;
-          const parallax = mobile ? dir * eased * -3 : dir * eased * -10;
-          const scale = mobile ? 1.006 + eased * 0.004 : 1.018 + eased * 0.012;
-
-          entry.style.setProperty("--roll-opacity", clamp(presence * 1.1).toFixed(3));
-          entry.style.setProperty("--roll-y", `${rollY}px`);
-          entry.style.setProperty("--roll-scale", `${1 - eased * (mobile ? 0.012 : 0.03)}`);
-          entry.style.setProperty("--roll-blur", `${rollBlur}px`);
-          entry.style.setProperty("--copy-blur", `${copyBlur}px`);
-          entry.style.setProperty("--roll-rotate", `${rollRotate}deg`);
-          entry.style.setProperty("--roll-tilt", `${rollTilt}deg`);
-          entry.style.setProperty("--depth-z", `${Math.max(0, focus) * (mobile ? 8 : 42)}px`);
-          entry.style.setProperty("--depth-edge", `${(Math.max(0, focus) * (mobile ? 0.35 : 1)).toFixed(3)}`);
-          entry.style.setProperty("--drift", `${drift}px`);
-          entry.style.setProperty("--image-parallax", `${parallax}px`);
-          entry.style.setProperty("--image-scale", `${scale}`);
-          entry.style.setProperty("--scan-x", `${50 + dir * eased * 34}%`);
-
-          if (focus > activeFocus) {
-            activeFocus = focus;
-            active = entry;
-            activeRect = r;
-            activeIdx = i;
-          }
-        });
-
-        if (active && activeFocus > 0.012) {
-          const fr = active.querySelector(".photo-frame");
-          const cp = active.querySelector(".copy");
-          const activeMicro = active.querySelector(".micro")?.textContent || "Archive";
-          if (tiltPhoto !== fr) {
-            clearTilt(tiltPhoto);
-            tiltPhoto = fr;
-          }
-          applyTilt();
-          const archiveRect = archive.getBoundingClientRect();
-          const frRect = {
-            left: archiveRect.left + fr.offsetLeft,
-            top: archiveRect.top + active.offsetTop + fr.offsetTop,
-            width: fr.offsetWidth,
-            height: fr.offsetHeight,
-          };
-          const cpRect = {
-            left: archiveRect.left + cp.offsetLeft,
-            top: archiveRect.top + active.offsetTop + cp.offsetTop,
-            width: cp.offsetWidth,
-            height: cp.offsetHeight,
-          };
-          const fLeft = frRect.left;
-          const fTop = frRect.top;
-          const fW = frRect.width;
-          const side = fLeft + fW / 2 < sx ? "left" : "right";
-          const anchorY = clamp(fTop + 16, spineTop, spineBottom);
-          const reach = side === "left" ? sx - (fLeft + fW) : fLeft - sx;
-          const grown = Math.max(0, reach) * (0.34 + 0.66 * activeFocus);
-
-          placeLine(actLine, {
-            side,
-            top: anchorY,
-            length: grown,
-            opacity: activeFocus * 0.9,
-            sx,
-          });
-          placeNode(actNode, { top: anchorY, opacity: activeFocus, sx });
-
-          const cLeft = cpRect.left;
-          const cW = cpRect.width;
-          const copySide = cLeft + cW / 2 < sx ? "left" : "right";
-          const copyAnchorY = clamp(cpRect.top + cpRect.height - 10, spineTop, spineBottom);
-          const copyReach = copySide === "left" ? sx - (cLeft + cW) : cLeft - sx;
-          const copyGrown = Math.max(0, copyReach) * (0.28 + 0.72 * activeFocus);
-
-          placeLine(copyLine, {
-            side: copySide,
-            top: copyAnchorY,
-            length: copyGrown,
-            opacity: activeFocus * 0.44,
-            sx,
-          });
-          placeNode(copyNode, { top: copyAnchorY, opacity: activeFocus * 0.56, sx });
-
-          const num = String(activeIdx + 1).padStart(2, "0");
-          actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
-          actIndex.style.top = `${anchorY - 1}px`;
-          actIndex.style.left =
-            side === "right" ? `${sx - 52}px` : `${sx + 12}px`;
-          actIndex.style.opacity = (activeFocus * 0.7).toFixed(3);
-          document.documentElement.style.setProperty("--dial-opacity", (activeFocus * 0.56).toFixed(3));
-          document.documentElement.style.setProperty("--dial-rot", `${activeIdx * 18 + activeFocus * 12}deg`);
-          document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeFocus * 0.08}`);
-          const readoutX = side === "right" ? sx - 150 : sx + 74;
-          const readoutAlign = side === "right" ? "right" : "left";
-          dialLabel.parentElement.style.left = `${readoutX}px`;
-          dialLabel.parentElement.style.textAlign = readoutAlign;
-          dialLabel.textContent = activeMicro;
-          dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
-          setMobileLabel(`${num} / ${activeMicro}`);
-        } else {
-          actLine.style.opacity = "0";
-          actNode.style.opacity = "0";
-          actIndex.style.opacity = "0";
-          copyLine.style.opacity = "0";
-          copyNode.style.opacity = "0";
-          document.documentElement.style.setProperty("--dial-opacity", "0");
-          clearTilt(tiltPhoto);
-          tiltPhoto = null;
-        }
-
-        // ---- ABOUT ----
-        const aRect = about.getBoundingClientRect();
-        const aInner = aboutInner.getBoundingClientRect();
-        const aTarget = aInner.top + 20;
-        const aAnchor = clamp(aTarget, spineTop, spineBottom);
-        const aCenter = aRect.top + aRect.height * 0.42;
-        const aAbs = Math.abs(aCenter - vc);
-        const aFocus = 1 - smoothstep(0.04, 0.92, aAbs / vc);
-        const aFade = aFocus * (1 - smoothstep(0, 150, Math.abs(aTarget - aAnchor)));
-        const aLen = (mobile ? 34 : 78) * (0.4 + 0.6 * aFocus);
-
-        placeLine(abtLine, {
-          side: mobile ? "right" : "left",
-          top: aAnchor,
-          length: aLen,
-          opacity: aFade * 0.85,
-          sx,
-        });
-        placeNode(abtNode, { top: aAnchor, opacity: aFade, sx });
-        if (aFade > 0.05) {
-          document.documentElement.style.setProperty("--dial-opacity", "0");
-          setMobileLabel("About");
-        }
-
-        // ---- CONTACT ----
-        const cRect = contact.getBoundingClientRect();
-        const cInner = contactInner.getBoundingClientRect();
-        const cTarget = cInner.top + 20;
-        const cAnchor = clamp(cTarget, spineTop, spineBottom);
-        const cCenter = cRect.top + cRect.height * 0.34;
-        const cAbs = Math.abs(cCenter - vc);
-        const cFocus = 1 - smoothstep(0.04, 0.92, cAbs / vc);
-        const cFade = cFocus * (1 - smoothstep(0, 150, Math.abs(cTarget - cAnchor)));
-        const cLen = (mobile ? 34 : 78) * (0.4 + 0.6 * cFocus);
-
-        placeLine(conLine, {
-          side: "right",
-          top: cAnchor,
-          length: cLen,
-          opacity: cFade * 0.85,
-          sx,
-        });
-        placeNode(conNode, { top: cAnchor, opacity: cFade, sx });
-        if (cFade > 0.05) {
-          document.documentElement.style.setProperty("--dial-opacity", "0");
-          setMobileLabel("Contact");
+        // ── About / Contact connectors (desktop only, non-scrolling) ──
+        if (!mob && !isScrolling()) {
+          const aRect   = about.getBoundingClientRect();
+          const aFocus  = Math.max(0, 1-ss(0.08,0.9,Math.abs(entries.length+1-progress)));
+          const cFocus  = Math.max(0, 1-ss(0.08,0.9,Math.abs(entries.length+2-progress)));
+          placeLine(abtLine,{ side:"left",  top:vh/2, length:aFocus*80, opacity:aFocus*0.75, sx, orient:"horizontal" });
+          placeNode(abtNode,{ top:vh/2, opacity:aFocus, sx });
+          placeLine(conLine,{ side:"right", top:vh/2, length:cFocus*80, opacity:cFocus*0.75, sx, orient:"horizontal" });
+          placeNode(conNode,{ top:vh/2, opacity:cFocus, sx });
+          if (aFocus > 0.2) setLabel("About");
+          if (cFocus > 0.2) setLabel("Contact");
         }
       };
 
-      let ticking = false;
-      let scrollEndTimer = null;
-
+      // ── Scroll driver ─────────────────────────────────────────────
+      let ticking = false, scrollEndTimer = null;
       const onScroll = () => {
         document.body.classList.add("is-scrolling");
         clearTimeout(scrollEndTimer);
         scrollEndTimer = setTimeout(() => {
           document.body.classList.remove("is-scrolling");
-          frame(); // redraw connectors + atmosphere now scroll is settled
+          frame();
         }, 80);
         if (ticking) return;
         ticking = true;
-        requestAnimationFrame(() => {
-          ticking = false;
-          frame();
-        });
+        requestAnimationFrame(() => { ticking = false; frame(); });
       };
 
       frame();
       document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", () => {
-        syncArchiveMode();
-        onScroll();
+        _mobile = innerWidth <= 820;
+        document.documentElement.style.setProperty("--scene-count", entries.length + 3);
+        frame();
       });
     </script>
+
   </body>
 </html>
