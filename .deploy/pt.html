@@ -1253,7 +1253,7 @@
           display: grid;
           grid-template-columns: 1fr;
           grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
-          width: calc(100vw - 20px);
+          width: 100vw;
           padding: 0;
         }
 
@@ -1278,9 +1278,15 @@
           grid-column: 1;
           grid-row: 1;
           width: 100%;
-          height: calc(100% - clamp(14px, 2vh, 22px));
-          align-self: start;
+          aspect-ratio: 4 / 3;
+          max-height: calc(var(--h-spine-y) - 10px);
+          align-self: end;
           overflow: hidden;
+        }
+
+        .archive-horizontal .photo-frame img {
+          object-fit: cover;
+          object-position: center;
         }
 
         .archive-horizontal .copy,
