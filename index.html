@@ -30,9 +30,7 @@
       }
 
       html {
-        scroll-behavior: smooth;
-        scroll-padding-top: 12vh;
-        scroll-snap-type: y mandatory;
+        /* scroll-behavior: smooth intentionally removed - breaks window.scrollTo() on iOS Safari 15.4+ */
       }
 
       body {
@@ -45,6 +43,7 @@
         text-rendering: geometricPrecision;
         -webkit-font-smoothing: antialiased;
         -webkit-tap-highlight-color: transparent;
+        overscroll-behavior: none;
       }
 
       img {
@@ -377,7 +376,6 @@
         width: var(--measure);
         margin: 0 auto;
         perspective: 1400px;
-        scroll-snap-align: start;
       }
 
       .identity {
@@ -453,8 +451,6 @@
         min-height: 112vh;
         padding: 14vh 0;
         perspective: 1600px;
-        scroll-snap-align: center;
-        scroll-snap-stop: always;
       }
 
       .entry:nth-child(even) {
@@ -596,7 +592,6 @@
         width: var(--measure);
         margin: 0 auto;
         padding: 8vh 0 18vh;
-        scroll-snap-align: center;
       }
 
       .contact__inner {
@@ -628,7 +623,6 @@
         width: var(--measure);
         margin: 0 auto;
         padding: 10vh 0;
-        scroll-snap-align: center;
       }
 
       .about__inner {
@@ -770,13 +764,10 @@
         }
 
         html {
-          scroll-padding-top: 8vh;
-          scroll-snap-type: none;
         }
 
         body {
           font-size: 14px;
-          overscroll-behavior-y: auto;
         }
 
         .lang { top: 18px; right: 16px; gap: 7px; }
@@ -841,7 +832,6 @@
           display: block;
           min-height: auto;
           padding: 7vh 0 6vh 46px;
-          scroll-snap-align: none;
         }
 
         .entry.is-mobile-visible,
@@ -1177,7 +1167,6 @@
         opacity: 0;
         transform: translateX(-50%);
         pointer-events: none;
-        scroll-snap-align: none;
         will-change: opacity, transform;
       }
 
@@ -1820,9 +1809,22 @@
       mobileJumpButtons.forEach(btn => {
         btn.addEventListener("click", () => {
           const dir  = Number(btn.dataset.mobileJump) || 1;
-          const step = innerHeight * (isMobile() ? 0.52 : 0.86);
+          const step = STEP || innerHeight * (isMobile() ? 0.52 : 0.86);
           const cur  = Math.round(scrollY / step);
-          window.scrollTo({ top: clamp(cur + dir, 0, scenes.length - 1) * step, behavior: "smooth" });
+          const next = clamp(cur + dir, 0, scenes.length - 1);
+          // Smooth scroll via JS animation - not CSS scroll-behavior (broken on iOS)
+          const target = next * step;
+          const start  = scrollY;
+          const dist   = target - start;
+          const dur    = 340;
+          const t0     = performance.now();
+          const tick   = now => {
+            const p = Math.min((now - t0) / dur, 1);
+            const ease = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+            window.scrollTo(0, start + dist * ease);
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
         });
       });
 
@@ -1841,8 +1843,9 @@
         swipeDX = swipeStartX - e.touches[0].clientX;
         const dy = swipeStartY - e.touches[0].clientY;
         if (Math.abs(swipeDX) > Math.abs(dy) * 1.4 && Math.abs(swipeDX) > 8) {
-          const step = innerHeight * 0.52;
-          window.scrollTo({ top: swipeStartScroll + swipeDX * (step / innerWidth * 2.2), behavior: "instant" });
+          const step = STEP || innerHeight * 0.52;
+          // Use legacy scrollTo(x, y) - never blocked by scroll-behavior on iOS
+          window.scrollTo(0, swipeStartScroll + swipeDX * (step / innerWidth * 2.2));
         }
       }, { passive: true });
       window.addEventListener("touchend", () => { isSwiping = false; }, { passive: true });
