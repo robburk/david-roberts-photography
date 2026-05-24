@@ -1531,6 +1531,7 @@
             <img
               src="assets/display/new-10.jpg"
               alt="David Roberts aerial photograph of a coastline and turquoise water"
+              style="object-position: right center;"
             />
           </figure>
           <div class="copy">
@@ -1853,19 +1854,40 @@
       mobileJumpButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const dir = Number(button.dataset.mobileJump) || 1;
-          const current = isMobile()
-            ? mobileTargets.reduce((best, target, i) => {
-                const distance = Math.abs(target.getBoundingClientRect().top - window.innerHeight * 0.18);
-                return distance < best.distance ? { i, distance } : best;
-              }, { i: 0, distance: Infinity }).i
-            : Math.round(window.scrollY / (window.innerHeight * 0.82));
-          const nextIndex = clamp(current + dir, 0, mobileTargets.length - 1);
-          const top = isMobile()
-            ? mobileTargets[nextIndex].offsetTop - window.innerHeight * 0.08
-            : nextIndex * window.innerHeight * 0.82;
-          window.scrollTo({ top, behavior: "smooth" });
+          const step = window.innerHeight * (isMobile() ? 0.52 : 0.86);
+          const scenes = [intro, ...entries, about, contact];
+          const current = Math.round(window.scrollY / step);
+          const next = clamp(current + dir, 0, scenes.length - 1);
+          window.scrollTo({ top: next * step, behavior: "smooth" });
         });
       });
+
+      // Swipe left/right on mobile maps to scroll up/down (horizontal Rolodex)
+      let swipeStartX = 0;
+      let swipeStartY = 0;
+      let swipeStartScroll = 0;
+      let isSwiping = false;
+
+      window.addEventListener("touchstart", (e) => {
+        if (!isMobile()) return;
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        swipeStartScroll = window.scrollY;
+        isSwiping = true;
+      }, { passive: true });
+
+      window.addEventListener("touchmove", (e) => {
+        if (!isMobile() || !isSwiping) return;
+        const dx = swipeStartX - e.touches[0].clientX;
+        const dy = swipeStartY - e.touches[0].clientY;
+        // Only intercept if clearly horizontal swipe
+        if (Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) > 12) {
+          const step = window.innerHeight * 0.52;
+          window.scrollTo({ top: swipeStartScroll + dx * (step / window.innerWidth * 2.2), behavior: "instant" });
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchend", () => { isSwiping = false; }, { passive: true });
 
       const setScene = (el, delta, active) => {
         const abs = Math.abs(delta);
