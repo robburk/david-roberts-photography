@@ -1166,9 +1166,12 @@
 
       .archive-horizontal .photo-frame img {
         position: absolute;
-        inset: 0;
+        top: clamp(18px, 4vh, 44px);
+        bottom: clamp(12px, 2vh, 24px);
+        left: 0;
+        right: 0;
         width: 100%;
-        height: 100%;
+        height: calc(100% - clamp(30px, 6vh, 68px));
         object-fit: contain;
         object-position: center bottom;
       }
