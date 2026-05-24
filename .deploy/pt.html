@@ -1230,7 +1230,7 @@
         }
 
         .archive-horizontal .site {
-          min-height: calc(var(--scene-count, 12) * 52svh);
+          min-height: calc(var(--scene-count, 12) * 56svh);
         }
 
         .archive-horizontal .spine {
@@ -1798,18 +1798,13 @@
 
       mobileJumpButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          const dir = Number(button.dataset.mobileJump) || 1;
-          const current = isMobile()
-            ? mobileTargets.reduce((best, target, i) => {
-                const distance = Math.abs(target.getBoundingClientRect().top - window.innerHeight * 0.18);
-                return distance < best.distance ? { i, distance } : best;
-              }, { i: 0, distance: Infinity }).i
-            : Math.round(window.scrollY / (window.innerHeight * 0.82));
-          const nextIndex = clamp(current + dir, 0, mobileTargets.length - 1);
-          const top = isMobile()
-            ? mobileTargets[nextIndex].offsetTop - window.innerHeight * 0.08
-            : nextIndex * window.innerHeight * 0.82;
-          window.scrollTo(0, top);
+          const dir  = Number(button.dataset.mobileJump) || 1;
+          const vh   = window.innerHeight;
+          const step = vh * (isMobile() ? 0.52 : 0.88);
+          const scenes = [intro, ...entries, about, contact];
+          const current = Math.round(window.scrollY / step);
+          const next    = clamp(current + dir, 0, scenes.length - 1);
+          window.scrollTo(0, next * step);
         });
       });
 
