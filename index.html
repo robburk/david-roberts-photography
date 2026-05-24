@@ -1895,15 +1895,16 @@
 
         if (activeEntry && activeEntryFocus > 0.05) {
           const fr = activeEntry.querySelector(".photo-frame");
-          const cp = activeEntry.querySelector(".copy");
+          const cp = mobile ? null : activeEntry.querySelector(".copy");
+          const cpRect = cp ? cp.getBoundingClientRect() : null;
           const activeMicro = activeEntry.querySelector(".micro")?.textContent || "Archive";
           const activeImg = fr.querySelector("img");
           const frRect = fr.getBoundingClientRect();
-          const cpRect = cp.getBoundingClientRect();
           const imageX = frRect.left + frRect.width / 2;
-          const imageLen = Math.max(0, spineY - frRect.bottom);
-          const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
-          const copyLen = Math.max(0, cpRect.top - spineY);
+          // On mobile: fixed connector length - don't trust frRect.bottom vs spineY (svh≠vh on iOS)
+          const imageLen = mobile ? 22 : Math.max(0, spineY - frRect.bottom);
+          const copyX = cpRect ? cpRect.left + cpRect.width * 0.5 : imageX;
+          const copyLen = mobile ? 0 : Math.max(0, (cpRect ? cpRect.top : spineY) - spineY);
           const lineFocus = activeEntryFocus ** 1.35;
 
           placeLine(actLine, {
