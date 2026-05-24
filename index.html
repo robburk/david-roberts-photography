@@ -1111,9 +1111,8 @@
         grid-row: 1;
         align-self: end;
         aspect-ratio: 3 / 2;
-        width: min(84vw, 1060px);
         max-height: calc(var(--h-spine-y) - 48px);
-        margin: 0 auto clamp(14px, 2.4vh, 24px);
+        margin-bottom: clamp(14px, 2.4vh, 24px);
         overflow: hidden;
       }
 
@@ -1627,7 +1626,7 @@
       const syncArchiveMode = () => {
         document.body.classList.add("archive-horizontal");
         document.documentElement.style.setProperty("--scene-count", entries.length + 3);
-        document.documentElement.style.setProperty("--h-spine-y", (mobile ? "76%" : "80%"));
+        document.documentElement.style.setProperty("--h-spine-y", isMobile() ? "76%" : "80%");
         document.documentElement.style.scrollSnapType = "none";
       };
       syncArchiveMode();
@@ -1833,7 +1832,7 @@
         const step = vh * (mobile ? 0.52 : 0.88);
         const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        const spineY = vh * (mobile ? 0.68 : 0.74);
+        const spineY = vh * (mobile ? 0.76 : 0.80);
         const sx = vw / 2;
 
         scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
