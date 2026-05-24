@@ -1263,20 +1263,24 @@
         }
 
         .archive-horizontal .conn-line.is-active,
-        .archive-horizontal .conn-line.is-copy,
         .archive-horizontal .conn-node.is-active,
-        .archive-horizontal .conn-node.is-copy,
         .archive-horizontal .conn-index {
           display: block;
+        }
+
+        .archive-horizontal .conn-line.is-copy,
+        .archive-horizontal .conn-node.is-copy {
+          display: none;
         }
 
         .archive-horizontal .photo-frame,
         .archive-horizontal .entry:nth-child(even) .photo-frame {
           grid-column: 1;
           grid-row: 1;
-          aspect-ratio: 1.52 / 1;
-          align-self: end;
-          margin-bottom: clamp(14px, 2vh, 22px);
+          width: 100%;
+          height: calc(100% - clamp(14px, 2vh, 22px));
+          align-self: start;
+          overflow: hidden;
         }
 
         .archive-horizontal .copy,
