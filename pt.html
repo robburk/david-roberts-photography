@@ -457,6 +457,17 @@
         overflow: hidden;
       }
 
+      .image-clip::before {
+        content: "";
+        position: absolute;
+        inset: -18px;
+        z-index: 0;
+        background: var(--image-backdrop) center / cover no-repeat;
+        filter: blur(18px) brightness(1.08) saturate(0.96);
+        opacity: 0;
+        transform: scale(1.05);
+      }
+
       .photo-frame::after {
         content: "";
         position: absolute;
@@ -1194,7 +1205,7 @@
 
       @media (max-width: 820px) {
         body.archive-horizontal {
-          --h-spine-y: 72%;
+          --h-spine-y: 67%;
         }
 
         .archive-horizontal .site {
@@ -1221,7 +1232,7 @@
           display: grid;
           grid-template-columns: 1fr;
           grid-template-rows: minmax(0, var(--h-spine-y)) minmax(0, calc(100svh - var(--h-spine-y)));
-          width: calc(100vw - 20px);
+          width: calc(100vw - 6px);
           padding: 0;
         }
 
@@ -1242,9 +1253,17 @@
         .archive-horizontal .entry:nth-child(even) .photo-frame {
           grid-column: 1;
           grid-row: 1;
-          aspect-ratio: 1.02 / 1;
+          aspect-ratio: 0.9 / 1;
           align-self: end;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
+        }
+
+        .archive-horizontal .image-clip::before {
+          opacity: 0.34;
+        }
+
+        .archive-horizontal .photo-frame img {
+          object-fit: contain;
         }
 
         .archive-horizontal .copy,
@@ -1543,6 +1562,7 @@
       document.querySelectorAll(".photo-frame > img").forEach((img) => {
         const clip = document.createElement("span");
         clip.className = "image-clip";
+        clip.style.setProperty("--image-backdrop", `url("${img.currentSrc || img.src}")`);
         img.replaceWith(clip);
         clip.appendChild(img);
       });
