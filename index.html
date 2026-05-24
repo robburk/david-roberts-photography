@@ -1207,32 +1207,35 @@
           z-index: 0;
           display: block;
           pointer-events: none;
-          overflow: hidden;
-          opacity: 0.28;
         }
 
-        .mobile-atmosphere::after {
-          content: "";
+        .atmos-canvas {
           position: absolute;
           inset: 0;
-          background:
-            linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.72) 22%, rgba(255, 255, 255, 0.68) 72%, #fff 100%),
-            rgba(255, 255, 255, 0.68);
-        }
-
-        .mobile-atmosphere__layer {
-          position: absolute;
-          inset: -46px;
-          background-position: center;
-          background-size: cover;
-          filter: blur(18px) saturate(0.88) brightness(1.1);
+          width: 100%;
+          height: 100%;
           opacity: 0;
-          transform: scale(1.12);
-          transition: opacity 0.55s ease;
+          transition: opacity 0.6s ease;
+          filter: blur(22px) saturate(0.82);
+          transform: scale(1.14);
+          will-change: opacity;
         }
 
-        .mobile-atmosphere__layer.is-active {
+        .atmos-canvas.is-active {
           opacity: 1;
+        }
+
+        .atmos-vignette {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(
+            ellipse 110% 110% at 50% 50%,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.55) 52%,
+            rgba(255,255,255,0.88) 74%,
+            #fff 100%
+          );
+          pointer-events: none;
         }
 
         .archive-horizontal .site {
@@ -1358,8 +1361,9 @@
     <div class="cursor-dot" aria-hidden="true"></div>
     <div class="cursor-ring" aria-hidden="true"></div>
     <div class="mobile-atmosphere" aria-hidden="true">
-      <span class="mobile-atmosphere__layer is-active"></span>
-      <span class="mobile-atmosphere__layer"></span>
+      <canvas class="atmos-canvas is-active" width="64" height="48"></canvas>
+      <canvas class="atmos-canvas" width="64" height="48"></canvas>
+      <div class="atmos-vignette"></div>
     </div>
     <main class="site" aria-label="David Roberts photography portfolio">
       <div class="spine" aria-hidden="true"></div>
@@ -1576,10 +1580,40 @@
       const mobileStatusLabel = document.querySelector(".mobile-status__label");
       const mobileJumpButtons = Array.from(document.querySelectorAll("[data-mobile-jump]"));
       const atmosphere = document.querySelector(".mobile-atmosphere");
-      const atmosphereLayers = Array.from(document.querySelectorAll(".mobile-atmosphere__layer"));
-      let atmosphereIndex = 0;
-      let atmosphereSrc = "";
+      const atmosCanvases = Array.from(document.querySelectorAll(".atmos-canvas"));
+      let atmosIndex = 0;
+      let atmosSrc = "";
+      let atmosTimer = null;
 
+      const drawAtmos = (canvas, src, onDone) => {
+        const img = new Image();
+        img.onload = () => {
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          onDone && onDone();
+        };
+        img.src = src;
+      };
+
+      const setMobileAtmosphere = (src, focus = 1) => {
+        if (!atmosphere || !atmosCanvases.length || !isMobile() || !src) return;
+        atmosphere.style.opacity = (0.1 + clamp(focus) * 0.14).toFixed(3);
+        if (src === atmosSrc) return;
+        atmosSrc = src;
+        clearTimeout(atmosTimer);
+        atmosTimer = setTimeout(() => {
+          const next = atmosCanvases[1 - atmosIndex];
+          const prev = atmosCanvases[atmosIndex];
+          drawAtmos(next, src, () => {
+            next.classList.add("is-active");
+            prev.classList.remove("is-active");
+            atmosIndex = 1 - atmosIndex;
+          });
+        }, 80);
+      };
+      const clearMobileAtmosphere = () => {
+        if (atmosphere) atmosphere.style.opacity = "0";
+      };
       const introLine = document.querySelector(".conn-line.is-intro");
       const introNode = document.querySelector(".conn-node.is-intro");
       const actLine = document.querySelector(".conn-line.is-active");
