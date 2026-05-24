@@ -854,8 +854,8 @@
             rotateX(var(--roll-rotate));
           filter: none;
           transition:
-            opacity 0.42s ease,
-            transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+            opacity 0.32s ease,
+            transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
           touch-action: pan-y;
         }
 
@@ -1208,7 +1208,8 @@
           display: block;
           pointer-events: none;
           overflow: hidden;
-          opacity: 0.28;
+          opacity: 0;
+          transition: opacity 0.7s ease;
         }
 
         .mobile-atmosphere__layer {
@@ -1286,9 +1287,14 @@
         .archive-horizontal .entry:nth-child(even) .photo-frame {
           grid-column: 1;
           grid-row: 1;
-          aspect-ratio: 1.28 / 1;
+          aspect-ratio: 1.52 / 1;
           align-self: end;
           margin-bottom: 14px;
+        }
+
+        .archive-horizontal .photo-frame::after {
+          border: none;
+          box-shadow: none;
         }
 
         .archive-horizontal .copy,
@@ -1622,9 +1628,10 @@
       };
       const isMobile = () =>
         window.matchMedia("(max-width: 820px)").matches;
-      const setMobileAtmosphere = (src, focus = 1) => {
+      const setMobileAtmosphere = (src, focus = 1, progress = 1) => {
         if (!atmosphere || !atmosphereLayers.length || !isMobile() || !src) return;
-        atmosphere.style.opacity = (0.1 + clamp(focus) * 0.14).toFixed(3);
+        const fadeIn = clamp(smoothstep(0.15, 0.85, progress));
+        atmosphere.style.opacity = (fadeIn * (0.1 + clamp(focus) * 0.14)).toFixed(3);
         if (src === atmosphereSrc) return;
         atmosphereSrc = src;
         clearTimeout(atmosTimer);
@@ -1835,7 +1842,7 @@
         const abs = Math.abs(delta);
         const focus = 1 - smoothstep(0.02, 0.72, abs);
         el.classList.toggle("is-h-active", active);
-        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 1.05, 1120)}px`);
+        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 0.88, 960)}px`);
         el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
         el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
         return focus;
@@ -1953,7 +1960,7 @@
           dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
           setMobileLabel(`${num} / ${activeMicro}`);
           if (mobile && activeImg) {
-            setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus);
+            setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus, progress);
           }
         } else {
           actLine.style.opacity = "0";
