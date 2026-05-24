@@ -1896,14 +1896,22 @@
 
       window.addEventListener("touchend", () => { isSwiping = false; }, { passive: true });
 
+      const isScrolling = () => document.body.classList.contains("is-scrolling");
+
       const setScene = (el, delta, active) => {
         const abs = Math.abs(delta);
-        const focus = 1 - smoothstep(0.02, 0.72, abs);
         el.classList.toggle("is-h-active", active);
         el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 0.88, 960)}px`);
-        el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
-        el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
-        return focus;
+        if (isScrolling()) {
+          // Binary during scroll — active snaps in, everything else snaps out
+          el.style.setProperty("--h-opacity", active ? "1" : "0");
+          el.style.setProperty("--h-scale", "1");
+        } else {
+          const focus = 1 - smoothstep(0.02, 0.72, abs);
+          el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
+          el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
+        }
+        return 1 - smoothstep(0.02, 0.72, abs);
       };
 
       const frameHorizontal = () => {
@@ -1971,54 +1979,42 @@
         });
 
         if (activeEntry && activeEntryFocus > 0.05) {
-          const fr = activeEntry.querySelector(".photo-frame");
-          const cp = activeEntry.querySelector(".copy");
           const activeMicro = activeEntry.querySelector(".micro")?.textContent || "Archive";
-          const activeImg = fr.querySelector("img");
-          const frRect = fr.getBoundingClientRect();
-          const cpRect = cp.getBoundingClientRect();
-          const imageX = frRect.left + frRect.width / 2;
-          const imageLen = Math.max(0, spineY - frRect.bottom);
-          const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
-          const copyLen = Math.max(0, cpRect.top - spineY);
-          const lineFocus = activeEntryFocus ** 1.35;
-
-          placeLine(actLine, {
-            side: "up",
-            top: spineY,
-            length: imageLen * lineFocus,
-            opacity: activeEntryFocus * 0.86,
-            sx: imageX,
-            orient: "vertical",
-          });
-          placeNode(actNode, { top: spineY, opacity: activeEntryFocus, sx: imageX });
-
-          placeLine(copyLine, {
-            side: "down",
-            top: spineY,
-            length: copyLen * lineFocus,
-            opacity: activeEntryFocus * 0.38,
-            sx: copyX,
-            orient: "vertical",
-          });
-          placeNode(copyNode, { top: spineY, opacity: activeEntryFocus * 0.48, sx: copyX });
-
           const num = String(activeEntryIndex + 1).padStart(2, "0");
-          actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
-          actIndex.style.top = `${spineY + 11}px`;
-          actIndex.style.left = `${imageX + 12}px`;
-          actIndex.style.opacity = (activeEntryFocus * 0.65).toFixed(3);
-          document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus * 0.44).toFixed(3));
-          document.documentElement.style.setProperty("--dial-rot", `${activeEntryIndex * 18 + activeEntryFocus * 12}deg`);
-          document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeEntryFocus * 0.08}`);
-          dialLabel.parentElement.style.left = `${sx + (mobile ? 42 : 86)}px`;
-          dialLabel.parentElement.style.top = `${spineY - (mobile ? 92 : 124)}px`;
-          dialLabel.parentElement.style.textAlign = "left";
-          dialLabel.textContent = activeMicro;
-          dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
           setMobileLabel(`${num} / ${activeMicro}`);
-          if (activeImg) {
-            setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus, progress);
+
+          // Skip expensive connector/atmosphere work while flicking
+          if (!isScrolling()) {
+            const fr = activeEntry.querySelector(".photo-frame");
+            const cp = activeEntry.querySelector(".copy");
+            const activeImg = fr.querySelector("img");
+            const frRect = fr.getBoundingClientRect();
+            const cpRect = cp.getBoundingClientRect();
+            const imageX = frRect.left + frRect.width / 2;
+            const imageLen = Math.max(0, spineY - frRect.bottom);
+            const copyX = cpRect.left + cpRect.width * (mobile ? 0.34 : 0.5);
+            const copyLen = Math.max(0, cpRect.top - spineY);
+            const lineFocus = activeEntryFocus ** 1.35;
+
+            placeLine(actLine, { side: "up", top: spineY, length: imageLen * lineFocus, opacity: activeEntryFocus * 0.86, sx: imageX, orient: "vertical" });
+            placeNode(actNode, { top: spineY, opacity: activeEntryFocus, sx: imageX });
+            placeLine(copyLine, { side: "down", top: spineY, length: copyLen * lineFocus, opacity: activeEntryFocus * 0.38, sx: copyX, orient: "vertical" });
+            placeNode(copyNode, { top: spineY, opacity: activeEntryFocus * 0.48, sx: copyX });
+
+            actIndex.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+            actIndex.style.top = `${spineY + 11}px`;
+            actIndex.style.left = `${imageX + 12}px`;
+            actIndex.style.opacity = (activeEntryFocus * 0.65).toFixed(3);
+            document.documentElement.style.setProperty("--dial-opacity", (activeEntryFocus * 0.44).toFixed(3));
+            document.documentElement.style.setProperty("--dial-rot", `${activeEntryIndex * 18 + activeEntryFocus * 12}deg`);
+            document.documentElement.style.setProperty("--dial-scale", `${0.92 + activeEntryFocus * 0.08}`);
+            dialLabel.parentElement.style.left = `${sx + (mobile ? 42 : 86)}px`;
+            dialLabel.parentElement.style.top = `${spineY - (mobile ? 92 : 124)}px`;
+            dialLabel.textContent = activeMicro;
+            dialCount.textContent = `${num} / ${String(entries.length).padStart(2, "0")}`;
+            if (activeImg) {
+              setMobileAtmosphere(activeImg.currentSrc || activeImg.getAttribute("src") || activeImg.src, activeEntryFocus, progress);
+            }
           }
         } else {
           actLine.style.opacity = "0";
