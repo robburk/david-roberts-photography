@@ -1049,6 +1049,13 @@
         }
       }
 
+      /* Kill transitions during fast scroll so cards track instantly */
+      body.is-scrolling .photo-frame,
+      body.is-scrolling .copy,
+      body.is-scrolling .entry {
+        transition: none !important;
+      }
+
       body.archive-horizontal {
         overflow-x: hidden;
         --h-spine-y: 80%;
@@ -2269,7 +2276,14 @@
       };
 
       let ticking = false;
+      let scrollEndTimer = null;
+
       const onScroll = () => {
+        document.body.classList.add("is-scrolling");
+        clearTimeout(scrollEndTimer);
+        scrollEndTimer = setTimeout(() => {
+          document.body.classList.remove("is-scrolling");
+        }, 80);
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
