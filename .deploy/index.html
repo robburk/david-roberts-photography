@@ -51,10 +51,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        filter: brightness(1.11) contrast(1.05) saturate(1.03);
-        transform: translate(var(--img-px, 0px), calc(var(--image-parallax, 0px) + var(--img-py, 0px)))
-          scale(var(--image-scale, 1.06));
-        will-change: transform;
+        /* filter removed - forces stacking context on every image, expensive on mobile GPU */
       }
 
       a {
@@ -389,7 +386,7 @@
         transform: translateY(calc(-50% + var(--intro-y)))
           scale(var(--intro-scale));
         transform-origin: left center;
-        will-change: opacity, filter, transform;
+        will-change: opacity, transform;
       }
 
       .identity__text {
@@ -475,7 +472,7 @@
           opacity 0.12s linear,
           filter 0.12s linear,
           transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-        will-change: opacity, filter, transform;
+        will-change: opacity, transform;
       }
 
       .entry:nth-child(even) .photo-frame {
@@ -541,7 +538,7 @@
           opacity 0.12s linear,
           filter 0.12s linear,
           transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-        will-change: opacity, filter, transform;
+        will-change: opacity, transform;
       }
 
       .entry:nth-child(even) .copy {
@@ -1327,8 +1324,8 @@
           grid-row: 1;
           position: relative;
           width: 100%;
-          height: calc(100% - 6px);
-          align-self: end;
+          height: calc(100% - 8px);
+          align-self: start;
           margin-bottom: 0;
           overflow: hidden;
         }
@@ -1867,20 +1864,29 @@
       };
       setStableVars();
 
-      // ── Scene positioning - direct style, skip invisible ──────────
-      const setScene = (el, delta, active, scrolling) => {
-        const abs  = Math.abs(delta);
-        const offscreen = abs > 1.6;
+      // Track parked (hidden) scenes to avoid redundant writes
+      const parked = new Set();
+
+      // ── Scene positioning - skip invisible ones entirely ──────────
+      const setScene = (el, delta, active, isEntry) => {
+        const abs = Math.abs(delta);
         el.classList.toggle("is-h-active", active);
-        // Direct transform - entries use left:50% so include -50% offset
+
+        if (abs > 1.5) {
+          // Only write once when going offscreen
+          if (!parked.has(el)) { el.style.opacity = "0"; parked.add(el); }
+          return;
+        }
+        parked.delete(el);
+
+        // Direct transform - GPU composited, no style recalc
         const tx = delta * Math.min(VW * 0.88, 960);
-        el.style.transform = el.classList.contains("entry")
+        el.style.transform = isEntry
           ? `translateX(calc(-50% + ${tx}px))`
           : `translateX(${tx}px)`;
-        if (offscreen) {
-          el.style.opacity = "0";
-        } else if (scrolling) {
-          el.style.opacity = active ? "1" : "0";
+
+        if (_scrolling) {
+          el.style.opacity = active ? "1" : (abs > 0.5 ? "0" : String(1 - abs * 2));
         } else {
           el.style.opacity = clamp((1 - ss(0.02, 0.72, abs)) * 1.18).toFixed(3);
         }
@@ -1894,38 +1900,32 @@
         const activeIdx = Math.round(progress);
         const sx       = VW / 2;
 
-        // Position all scenes - direct style mutation, no CSS vars
-        scenes.forEach((s, i) => setScene(s, i - progress, i === activeIdx, _scrolling));
+        // Position all scenes - skip offscreen ones
+        scenes.forEach((s, i) => setScene(s, i - progress, i === activeIdx, s.classList.contains("entry")));
 
-        // ── Intro fade ──
-        const idAbs   = Math.abs(0 - progress);
-        const idFocus = 1 - ss(0.05, 0.96, idAbs);
-        intro.style.setProperty("--intro-opacity", clamp(idFocus).toFixed(3));
-        intro.style.setProperty("--intro-blur",    `${ss(0.45,1,idAbs)*5}px`);
-        intro.style.setProperty("--intro-scale",   `${0.985+idFocus*0.015}`);
-        intro.style.setProperty("--intro-y", "0px");
-
-        if (!_scrolling) {
+        // ── Intro connector (only when visible, never during scroll) ──
+        if (!_scrolling && progress < 1.5) {
+          const idFocus = 1 - ss(0.05, 0.96, Math.abs(0 - progress));
           placeLine(introLine, { side:"down", top:SPINE_Y, length:(mob?46:70)*(0.35+0.65*idFocus), opacity:idFocus*0.85, sx, orient:"vertical" });
           placeNode(introNode, { top:SPINE_Y, opacity:idFocus, sx });
+        } else if (_scrolling) {
+          introLine.style.opacity = introNode.style.opacity = "0";
         }
 
-        // ── Entry vars ── (skip entirely while scrolling on mobile)
+        // ── Entry vars (desktop only, skip all on mobile during scroll) ──
         let activeEntry = null, activeEntryFocus = 0, activeEntryIndex = -1;
 
-        if (!(_scrolling && mob)) {
+        if (!mob) {
           entries.forEach((entry, i) => {
             const delta = i + 1 - progress;
             const abs   = Math.abs(delta);
+            if (abs > 1.5) return; // skip invisible entries
             const dir   = delta < 0 ? -1 : 1;
             const eased = Math.min(1, abs) ** 2;
             const focus = 1 - ss(0.02, 0.72, abs);
-            if (mob) {
-              entry.style.setProperty("--roll-opacity", clamp((1-ss(0.32,0.88,abs))*1.12).toFixed(3));
-              entry.style.setProperty("--roll-y",       `${dir*eased*3}px`);
-            } else {
-              entry.style.setProperty("--roll-opacity", clamp((1-ss(0.32,0.88,abs))*1.12).toFixed(3));
-              entry.style.setProperty("--roll-y",       `${dir*eased*16}px`);
+            entry.style.setProperty("--roll-opacity", clamp((1-ss(0.32,0.88,abs))*1.12).toFixed(3));
+            entry.style.setProperty("--roll-y",       `${dir*eased*16}px`);
+            if (!_scrolling) {
               entry.style.setProperty("--roll-scale",   `${1-eased*0.018}`);
               entry.style.setProperty("--roll-blur",    `${eased*2.2}px`);
               entry.style.setProperty("--copy-blur",    `${eased*1.3}px`);
@@ -1935,15 +1935,22 @@
               entry.style.setProperty("--depth-edge",   `${(Math.max(0,focus)*0.82).toFixed(3)}`);
               entry.style.setProperty("--image-parallax",`${dir*eased*-5}px`);
               entry.style.setProperty("--image-scale",  `${1.003+eased*0.004}`);
-              entry.style.setProperty("--scan-x",       `${50+dir*eased*22}%`);
             }
+            if (focus > activeEntryFocus) {
+              activeEntry = entry; activeEntryFocus = focus; activeEntryIndex = i;
+            }
+          });
+        } else if (!_scrolling) {
+          // Mobile: only find active entry for connectors/atmosphere (no var writes)
+          entries.forEach((entry, i) => {
+            const focus = 1 - ss(0.02, 0.72, Math.abs(i + 1 - progress));
             if (focus > activeEntryFocus) {
               activeEntry = entry; activeEntryFocus = focus; activeEntryIndex = i;
             }
           });
         }
 
-        // ── Active entry connectors (never while scrolling) ──
+        // ── Connectors + atmosphere (never during scroll) ──
         if (!_scrolling && activeEntry && activeEntryFocus > 0.05) {
           const micro  = activeEntry.querySelector(".micro")?.textContent || "Archive";
           const num    = String(activeEntryIndex + 1).padStart(2, "0");
