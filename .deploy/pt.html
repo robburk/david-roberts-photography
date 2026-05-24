@@ -1855,31 +1855,26 @@
       };
       setStableVars();
 
-      // Track parked (hidden) scenes to avoid redundant writes
-      const parked = new Set();
-
-      // ── Scene positioning - skip invisible ones entirely ──────────
+      // ── Scene positioning ─────────────────────────────────────────
       const setScene = (el, delta, active, isEntry) => {
         const abs = Math.abs(delta);
         el.classList.toggle("is-h-active", active);
 
-        if (abs > 1.5) {
-          // Only write once when going offscreen
-          if (!parked.has(el)) { el.style.opacity = "0"; parked.add(el); }
-          return;
-        }
-        parked.delete(el);
-
-        // Direct transform - GPU composited, no style recalc
+        // Always write transform - GPU composited, no layout cost
         const tx = delta * Math.min(VW * 0.88, 960);
         el.style.transform = isEntry
           ? `translateX(calc(-50% + ${tx}px))`
           : `translateX(${tx}px)`;
 
+        // Skip opacity for elements clearly off screen
+        if (abs > 2.2) { el.style.opacity = "0"; return; }
+
         if (_scrolling) {
-          el.style.opacity = active ? "1" : (abs > 0.5 ? "0" : String(1 - abs * 2));
+          // Binary snap during scroll - active=1, adjacent fades, rest=0
+          el.style.opacity = abs < 0.5 ? "1" : abs < 1.5 ? (1.5 - abs).toFixed(3) : "0";
         } else {
-          el.style.opacity = clamp((1 - ss(0.02, 0.72, abs)) * 1.18).toFixed(3);
+          // Smooth fade when settled - ss range covers delta 0→1.5 so adjacent card is visible
+          el.style.opacity = clamp((1 - ss(0, 1.5, abs)) * 1.2).toFixed(3);
         }
       };
 
