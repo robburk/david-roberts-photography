@@ -1671,7 +1671,7 @@
       const SPINE_RATIO_DESKTOP = 0.80;
       // Scroll distance per scene, as a fraction of the locked viewport height.
       // Bigger = more scroll per scene = easier to control and land on a photo.
-      const STEP_RATIO_MOBILE = 0.9;
+      const STEP_RATIO_MOBILE = 1.15;
       const STEP_RATIO_DESKTOP = 0.88;
 
       const syncArchiveMode = () => {
@@ -2290,21 +2290,20 @@
         snapping = true;
         const start = window.scrollY;
         const t0 = performance.now();
-        const dur = 320;
-        // Safety: never let snapping stick if rAF stalls (e.g. tab backgrounded)
-        clearTimeout(window.__snapSafety);
-        window.__snapSafety = setTimeout(() => { snapping = false; }, dur + 200);
-        const tick = (now) => {
-          const p = Math.min((now - t0) / dur, 1);
+        const dur = 300;
+        // Animate with setInterval, NOT requestAnimationFrame. rAF is throttled or
+        // suspended in some mobile/background states and the snap silently never
+        // ran (this was the bug). setInterval keeps firing regardless.
+        clearInterval(window.__snapTimer);
+        window.__snapTimer = setInterval(() => {
+          const p = Math.min((performance.now() - t0) / dur, 1);
           const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic
           window.scrollTo(0, Math.round(start + dist * ease));
-          if (p < 1) {
-            requestAnimationFrame(tick);
-          } else {
+          if (p >= 1) {
+            clearInterval(window.__snapTimer);
             snapping = false;
           }
-        };
-        requestAnimationFrame(tick);
+        }, 16);
       };
 
       // Snap to nearest scene when scrolling fully stops.
