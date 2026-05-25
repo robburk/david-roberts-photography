@@ -2266,14 +2266,17 @@
       // Gentle snap-to-page after scrolling fully stops.
       // Eases to the nearest scene. Uses the SAME step as frameHorizontal.
       let __dbg = null;
+      let __dbgLog = [];
       const dbg = (msg) => {
         if (!window.location.search.includes("debug")) return;
         if (!__dbg) {
           __dbg = document.createElement("div");
-          __dbg.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,0.82);color:#0f0;font:11px/1.4 monospace;padding:8px 10px;border-radius:6px;max-width:90vw;white-space:pre-wrap;pointer-events:none";
+          __dbg.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:10px/1.35 monospace;padding:8px 10px;border-radius:6px;max-width:92vw;white-space:pre-wrap;pointer-events:none";
           document.body.appendChild(__dbg);
         }
-        __dbg.textContent = msg;
+        __dbgLog.unshift(msg);
+        __dbgLog = __dbgLog.slice(0, 6);
+        __dbg.textContent = __dbgLog.join("\n");
       };
       const snapToNearest = () => {
         if (snapping) { dbg("bail: already snapping"); return; }
@@ -2307,27 +2310,35 @@
       };
 
       // Snap to nearest scene when scrolling fully stops.
-      // Run BOTH the native 'scrollend' event AND a debounced timer - belt and
-      // suspenders, because iOS Safari's scrollend can miss during fast momentum.
-      let scrollEndFallback = null;
-      let __settleCount = 0;
-      const onScrollSettled = () => {
-        __settleCount++;
-        dbg(`settled #${__settleCount} (scroll stopped)\ny:${window.scrollY.toFixed(0)}`);
-        if (snapping) return;
-        snapToNearest();
-      };
-
-      if ("onscrollend" in window) {
-        window.addEventListener("scrollend", onScrollSettled, { passive: true });
-      }
+      // A continuous poller watches scrollY. When it has been stable for ~180ms
+      // (momentum finished) and we're not already snapping, it snaps. This does
+      // NOT rely on the 'scrollend' event (unreliable on some iOS versions) or on
+      // requestAnimationFrame (can be throttled). Plain setInterval is robust.
+      let __pollLastY = window.scrollY;
+      let __stableMs = 0;
+      let __wasMoving = false;
+      const POLL_MS = 60;
+      setInterval(() => {
+        if (snapping) { __pollLastY = window.scrollY; __stableMs = 0; return; }
+        const y = window.scrollY;
+        if (Math.abs(y - __pollLastY) > 1) {
+          // moving
+          __wasMoving = true;
+          __stableMs = 0;
+        } else {
+          // still
+          __stableMs += POLL_MS;
+          if (__wasMoving && __stableMs >= 180) {
+            __wasMoving = false;
+            __stableMs = 0;
+            dbg(`stopped y:${y.toFixed(0)} -> snap`);
+            snapToNearest();
+          }
+        }
+        __pollLastY = y;
+      }, POLL_MS);
 
       const onScroll = () => {
-        if (snapping) return;
-        // Debounced fallback fires ~150ms after the last scroll event in case
-        // scrollend doesn't arrive (older iOS, interrupted momentum).
-        clearTimeout(scrollEndFallback);
-        scrollEndFallback = setTimeout(onScrollSettled, 150);
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
