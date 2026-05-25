@@ -1009,7 +1009,7 @@
       }
 
       .archive-horizontal .site {
-        min-height: calc(var(--scene-count, 12) * 92svh);
+        min-height: var(--site-h, calc(var(--scene-count, 12) * 92svh));
         overflow: visible;
       }
 
@@ -1233,7 +1233,7 @@
         }
 
         .archive-horizontal .site {
-          min-height: calc(var(--scene-count, 12) * 57svh);
+          min-height: var(--site-h, calc(var(--scene-count, 12) * 57svh));
         }
 
         .archive-horizontal .spine {
@@ -1666,17 +1666,30 @@
       // text drifting out of frame, and snap targets moving under the user.
       let APP_VH = window.innerHeight;
       let SPINE_PX = Math.round(APP_VH * 0.64);
+      let STEP_PX = APP_VH; // scroll distance per scene - set in syncArchiveMode
       const SPINE_RATIO_MOBILE = 0.67; // spine lower on mobile = more room for text below
       const SPINE_RATIO_DESKTOP = 0.80;
+      // Scroll distance per scene, as a fraction of the locked viewport height.
+      // Bigger = more scroll per scene = easier to control and land on a photo.
+      const STEP_RATIO_MOBILE = 0.9;
+      const STEP_RATIO_DESKTOP = 0.88;
 
       const syncArchiveMode = () => {
         document.body.classList.add("archive-horizontal");
-        document.documentElement.style.setProperty("--scene-count", entries.length + 3);
+        const sceneCount = entries.length + 3;
+        document.documentElement.style.setProperty("--scene-count", sceneCount);
         const mob = isMobile();
         const ratio = mob ? SPINE_RATIO_MOBILE : SPINE_RATIO_DESKTOP;
         SPINE_PX = Math.round(APP_VH * ratio);
+        STEP_PX = Math.round(APP_VH * (mob ? STEP_RATIO_MOBILE : STEP_RATIO_DESKTOP));
+        // The scrollable distance must be EXACTLY (sceneCount-1) steps so progress
+        // runs 0..sceneCount-1 and the last scene (contact) is precisely reachable.
+        // site height = that scroll distance + one viewport. All in px, one unit,
+        // so CSS height and JS step can never diverge (this was the Safari bug).
+        const siteH = (sceneCount - 1) * STEP_PX + APP_VH;
         // Lock all layout to the captured height in pixels - no svh/vh/toolbar drift
         document.documentElement.style.setProperty("--app-vh", `${APP_VH}px`);
+        document.documentElement.style.setProperty("--site-h", `${siteH}px`);
         document.documentElement.style.setProperty("--spine-px", `${SPINE_PX}px`);
         document.documentElement.style.setProperty("--h-spine-y", `${Math.round(ratio * 100)}%`);
         document.documentElement.style.scrollSnapType = "none";
@@ -1852,7 +1865,7 @@
       mobileJumpButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const dir  = Number(button.dataset.mobileJump) || 1;
-          const step = APP_VH * (isMobile() ? 0.52 : 0.88);
+          const step = STEP_PX;
           const scenes = [intro, ...entries, about, contact];
           const current = Math.round(window.scrollY / step);
           const next    = clamp(current + dir, 0, scenes.length - 1);
@@ -1880,7 +1893,7 @@
         const vw = window.innerWidth;
         const mobile = isMobile();
         const scenes = [intro, ...entries, about, contact];
-        const step = vh * (mobile ? 0.52 : 0.88);
+        const step = STEP_PX;
         const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
         // Use the SAME stable spine pixel the CSS uses - no svh/vh mismatch, cached
@@ -2264,7 +2277,7 @@
       };
       const snapToNearest = () => {
         if (snapping) { dbg("bail: already snapping"); return; }
-        const step = APP_VH * (isMobile() ? 0.52 : 0.88);
+        const step = STEP_PX;
         const scenesCount = entries.length + 3;
         const raw = window.scrollY / step;
         const nearest = Math.round(raw);
