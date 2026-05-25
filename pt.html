@@ -1198,6 +1198,13 @@
           --h-spine-y: 67%;
         }
 
+        /* Native gentle scroll-snap on mobile - compositor-driven, cannot be
+           throttled like JS timers. proximity = only snaps when you stop near a
+           scene, never fights a long flick. */
+        html {
+          scroll-snap-type: y proximity;
+        }
+
         .mobile-atmosphere {
           position: fixed;
           inset: 0;
@@ -1687,7 +1694,31 @@
         document.documentElement.style.setProperty("--site-h", `${siteH}px`);
         document.documentElement.style.setProperty("--spine-px", `${SPINE_PX}px`);
         document.documentElement.style.setProperty("--h-spine-y", `${Math.round(ratio * 100)}%`);
-        document.documentElement.style.scrollSnapType = "none";
+
+        // Native CSS scroll-snap (proximity = gentle, only snaps when you're near a
+        // point, never fights a long flick). Compositor-driven, so it works on iOS
+        // and can never be throttled like JS timers. We place one invisible marker
+        // per scene at its exact scroll position inside .site.
+        buildSnapMarkers(sceneCount);
+      };
+
+      // Build / rebuild invisible scroll-snap point markers, one per scene.
+      let snapHost = null;
+      const buildSnapMarkers = (sceneCount) => {
+        const site = document.querySelector(".site");
+        if (!site) return;
+        if (!snapHost) {
+          snapHost = document.createElement("div");
+          snapHost.setAttribute("aria-hidden", "true");
+          snapHost.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:-1";
+          site.appendChild(snapHost);
+        }
+        snapHost.innerHTML = "";
+        for (let i = 0; i < sceneCount; i++) {
+          const m = document.createElement("div");
+          m.style.cssText = `position:absolute;left:0;width:1px;height:1px;top:${i * STEP_PX}px;scroll-snap-align:start`;
+          snapHost.appendChild(m);
+        }
       };
       syncArchiveMode();
       const spineX = () => {
@@ -2255,83 +2286,10 @@
       };
 
       let ticking = false;
-      let snapTimer = null;
-      let snapping = false;
 
-      // Gentle snap-to-page after scrolling fully stops.
-      // Eases to the nearest scene. Uses the SAME step as frameHorizontal.
-      let __dbg = null;
-      let __dbgLog = [];
-      const dbg = (msg) => {
-        if (!window.location.search.includes("debug")) return;
-        if (!__dbg) {
-          __dbg = document.createElement("div");
-          __dbg.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:10px/1.35 monospace;padding:8px 10px;border-radius:6px;max-width:92vw;white-space:pre-wrap;pointer-events:none";
-          document.body.appendChild(__dbg);
-        }
-        __dbgLog.unshift(msg);
-        __dbgLog = __dbgLog.slice(0, 6);
-        __dbg.textContent = __dbgLog.join("\n");
-      };
-      const snapToNearest = () => {
-        if (snapping) { dbg("bail: already snapping"); return; }
-        const step = STEP_PX;
-        const scenesCount = entries.length + 3;
-        const raw = window.scrollY / step;
-        const nearest = Math.round(raw);
-        const target = clamp(nearest, 0, scenesCount - 1) * step;
-        const dist = target - window.scrollY;
-        dbg(`snap fired\nmobile:${isMobile()} APP_VH:${APP_VH}\nstep:${step.toFixed(0)} y:${window.scrollY.toFixed(0)}\nnearest:${nearest} target:${target.toFixed(0)}\ndist:${dist.toFixed(0)}`);
-        // Snap whenever we're off by more than 2px so the scene always lands centered
-        if (Math.abs(dist) < 2) return;
-
-        snapping = true;
-        const start = window.scrollY;
-        const t0 = performance.now();
-        const dur = 300;
-        // Animate with setInterval, NOT requestAnimationFrame. rAF is throttled or
-        // suspended in some mobile/background states and the snap silently never
-        // ran (this was the bug). setInterval keeps firing regardless.
-        clearInterval(window.__snapTimer);
-        window.__snapTimer = setInterval(() => {
-          const p = Math.min((performance.now() - t0) / dur, 1);
-          const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic
-          window.scrollTo(0, Math.round(start + dist * ease));
-          if (p >= 1) {
-            clearInterval(window.__snapTimer);
-            snapping = false;
-          }
-        }, 16);
-      };
-
-      // Snap to nearest scene when scrolling fully stops.
-      // A continuous poller watches scrollY. When it has been stable for ~180ms
-      // (momentum finished) and we're not already snapping, it snaps. This does
-      // NOT rely on the 'scrollend' event (unreliable on some iOS versions) or on
-      // requestAnimationFrame (can be throttled). Plain setInterval is robust.
-      let __pollLastY = window.scrollY;
-      let __stableMs = 0;
-      let __wasMoving = false;
-      const POLL_MS = 60;
-      setInterval(() => {
-        if (snapping) { __pollLastY = window.scrollY; __stableMs = 0; return; }
-        const y = window.scrollY;
-        if (Math.abs(y - __pollLastY) > 1) {
-          // moving
-          __wasMoving = true;
-          __stableMs = 0;
-        } else {
-          // still
-          __stableMs += POLL_MS;
-          if (__wasMoving && __stableMs >= 180) {
-            __wasMoving = false;
-            __stableMs = 0;
-            dbg(`stopped y:${y.toFixed(0)} -> snap`);
-            snapToNearest();
-          }
-        }
-        __pollLastY = y;
-      }, POLL_MS);
+      // Snapping is handled by native CSS scroll-snap (see buildSnapMarkers and the
+      // `scroll-snap-type: y proximity` rule). No JS scroll animation - that proved
+      // unreliable on iOS (timers throttled, scrollTo rejected mid-momentum).
 
       const onScroll = () => {
         if (ticking) return;
@@ -2345,16 +2303,35 @@
       frame();
       document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
+
       let lastWidth = window.innerWidth;
-      window.addEventListener("resize", () => {
-        // Only re-lock height on a real width change (orientation/rotate),
-        // NOT when the mobile toolbar shows/hides (height-only change).
+      // Recompute everything after the viewport settles. On a WIDTH change
+      // (rotation) we re-lock APP_VH and rebuild the whole layout; toolbar-only
+      // height changes are ignored so they don't shift things.
+      const relayout = () => {
         if (window.innerWidth !== lastWidth) {
           lastWidth = window.innerWidth;
           APP_VH = window.innerHeight;
         }
         syncArchiveMode();
-        onScroll();
+        frame();
+      };
+      window.addEventListener("resize", () => {
+        relayout();
+        // iOS finishes orientation relayout late - recompute again after it settles
+        // so text, connectors, and snap markers land on the new dimensions.
+        clearTimeout(window.__relayoutT);
+        window.__relayoutT = setTimeout(relayout, 250);
+      });
+      window.addEventListener("orientationchange", () => {
+        // Force a fresh height lock on rotation, then recompute once layout settles.
+        clearTimeout(window.__orientT);
+        window.__orientT = setTimeout(() => {
+          lastWidth = window.innerWidth;
+          APP_VH = window.innerHeight;
+          syncArchiveMode();
+          frame();
+        }, 300);
       });
     </script>
   </body>
