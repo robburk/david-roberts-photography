@@ -1198,11 +1198,11 @@
           --h-spine-y: 67%;
         }
 
-        /* Native gentle scroll-snap on mobile - compositor-driven, cannot be
-           throttled like JS timers. proximity = only snaps when you stop near a
-           scene, never fights a long flick. */
+        /* Native scroll-snap on mobile - compositor-driven, cannot be throttled.
+           mandatory = always lands on the nearest scene, so one swipe advances
+           exactly one page. */
         html {
-          scroll-snap-type: y proximity;
+          scroll-snap-type: none;
         }
 
         .mobile-atmosphere {
@@ -1673,7 +1673,7 @@
       const SPINE_RATIO_DESKTOP = 0.80;
       // Scroll distance per scene, as a fraction of the locked viewport height.
       // Bigger = more scroll per scene = easier to control and land on a photo.
-      const STEP_RATIO_MOBILE = 1.15;
+      const STEP_RATIO_MOBILE = 0.92;
       const STEP_RATIO_DESKTOP = 0.88;
 
       const syncArchiveMode = () => {
@@ -1702,7 +1702,11 @@
         buildSnapMarkers(sceneCount);
       };
 
-      // Build / rebuild invisible scroll-snap point markers, one per scene.
+      // Build / rebuild scroll-snap targets, one per scene. Each is a real,
+      // full-width block exactly STEP_PX tall, stacked in normal flow inside
+      // .site. Substantial in-flow blocks are far more reliable snap targets
+      // than 1px absolute points (which the snap engine often ignores), so
+      // mandatory snap lands cleanly = one swipe advances exactly one scene.
       let snapHost = null;
       const buildSnapMarkers = (sceneCount) => {
         const site = document.querySelector(".site");
@@ -1710,13 +1714,13 @@
         if (!snapHost) {
           snapHost = document.createElement("div");
           snapHost.setAttribute("aria-hidden", "true");
-          snapHost.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:-1";
+          snapHost.style.cssText = "position:absolute;left:0;top:0;width:100%;pointer-events:none;z-index:-1";
           site.appendChild(snapHost);
         }
         snapHost.innerHTML = "";
         for (let i = 0; i < sceneCount; i++) {
           const m = document.createElement("div");
-          m.style.cssText = `position:absolute;left:0;width:1px;height:1px;top:${i * STEP_PX}px;scroll-snap-align:start`;
+          m.style.cssText = `width:100%;height:${STEP_PX}px;`;
           snapHost.appendChild(m);
         }
       };
@@ -2286,10 +2290,52 @@
       };
 
       let ticking = false;
+      let snapping = false;
 
-      // Snapping is handled by native CSS scroll-snap (see buildSnapMarkers and the
-      // `scroll-snap-type: y proximity` rule). No JS scroll animation - that proved
-      // unreliable on iOS (timers throttled, scrollTo rejected mid-momentum).
+      // Two-layer snap. CSS scroll-snap (mandatory) handles it natively on real
+      // touch devices. As a reliable backstop - the synthetic-scroll path and any
+      // device where CSS snap under-engages - a JS watcher detects when scrolling
+      // has stopped and eases to the nearest scene with setInterval (NOT rAF,
+      // which gets throttled). This combination is what finally lands every swipe.
+      const easeToScene = () => {
+        if (snapping || !isMobile()) return;
+        const step = STEP_PX;
+        const count = entries.length + 3;
+        const target = Math.max(0, Math.min(count - 1, Math.round(window.scrollY / step))) * step;
+        const dist = target - window.scrollY;
+        if (Math.abs(dist) < 2) return;
+        snapping = true;
+        const start = window.scrollY;
+        const t0 = performance.now();
+        const dur = 300;
+        clearInterval(window.__snapAnim);
+        clearTimeout(window.__snapSafety);
+        window.__snapSafety = setTimeout(() => { snapping = false; }, dur + 250);
+        window.__snapAnim = setInterval(() => {
+          const p = Math.min((performance.now() - t0) / dur, 1);
+          const ease = 1 - Math.pow(1 - p, 3);
+          window.scrollTo(0, Math.round(start + dist * ease));
+          if (p >= 1) { clearInterval(window.__snapAnim); snapping = false; }
+        }, 16);
+      };
+
+      // Detect scroll-stop with a single persistent timer (never reset by scroll
+      // events - that was an earlier bug). When position holds still after having
+      // moved, ease to the nearest scene.
+      let __lastY = window.scrollY;
+      let __moved = false;
+      let __stable = 0;
+      setInterval(() => {
+        if (!isMobile()) return;
+        if (snapping) { __lastY = window.scrollY; __stable = 0; return; }
+        const y = window.scrollY;
+        if (Math.abs(y - __lastY) > 1) { __moved = true; __stable = 0; }
+        else {
+          __stable += 90;
+          if (__moved && __stable >= 180) { __moved = false; __stable = 0; easeToScene(); }
+        }
+        __lastY = y;
+      }, 90);
 
       const onScroll = () => {
         if (ticking) return;
