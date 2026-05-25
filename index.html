@@ -1299,11 +1299,13 @@
           grid-column: 1;
           grid-row: 2;
           align-self: start;
+          justify-self: stretch;
           display: block;
-          width: auto;
-          max-width: none;
+          width: 100%;
+          max-width: 100%;
           margin-top: 14px;
-          padding: 0 12px;
+          padding: 0 22px;
+          text-align: left;
         }
 
         .archive-horizontal .copy .micro,
@@ -1313,8 +1315,24 @@
           margin-top: revert;
         }
 
+        .archive-horizontal .copy .micro {
+          font-size: 0.62rem;
+          letter-spacing: 0.22em;
+          color: var(--muted);
+        }
+
+        .archive-horizontal .copy h2 {
+          font-size: clamp(1.5rem, 7vw, 2rem);
+          line-height: 1.08;
+          margin-top: 10px;
+          white-space: normal;
+        }
+
         .archive-horizontal .copy p:not(.micro) {
           margin-top: 8px;
+          font-size: 0.95rem;
+          line-height: 1.5;
+          color: var(--body);
         }
 
         .archive-horizontal .about__inner,
