@@ -1309,6 +1309,8 @@
           margin-top: 14px;
           padding: 0 22px;
           text-align: left;
+          box-sizing: border-box;
+          overflow-wrap: break-word;
         }
 
         .archive-horizontal .copy .micro,
@@ -1862,7 +1864,12 @@
         const abs = Math.abs(delta);
         const focus = 1 - smoothstep(0.02, 0.72, abs);
         el.classList.toggle("is-h-active", active);
-        el.style.setProperty("--h-x", `${delta * Math.min(window.innerWidth * 1.05, 1120)}px`);
+        // Mobile uses a smaller horizontal travel so a slightly-off rest position
+        // never pushes the centered text off-screen. Desktop keeps the wide slide.
+        const travel = isMobile()
+          ? Math.min(window.innerWidth * 0.6, 360)
+          : Math.min(window.innerWidth * 1.05, 1120);
+        el.style.setProperty("--h-x", `${delta * travel}px`);
         el.style.setProperty("--h-opacity", clamp(focus * 1.18).toFixed(3));
         el.style.setProperty("--h-scale", `${1 - smoothstep(0.3, 1.1, abs) * 0.035}`);
         return focus;
@@ -2253,17 +2260,17 @@
         const nearest = Math.round(raw);
         const target = clamp(nearest, 0, scenesCount - 1) * step;
         const dist = target - window.scrollY;
-        // Already basically on target
-        if (Math.abs(dist) < 4) return;
+        // Snap whenever we're off by more than 1px so the scene always lands centered
+        if (Math.abs(dist) < 1) return;
 
         snapping = true;
         const start = window.scrollY;
         const t0 = performance.now();
-        const dur = 380;
+        const dur = 300;
         const tick = (now) => {
           const p = Math.min((now - t0) / dur, 1);
           const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic
-          window.scrollTo(0, start + dist * ease);
+          window.scrollTo(0, Math.round(start + dist * ease));
           if (p < 1) {
             requestAnimationFrame(tick);
           } else {
