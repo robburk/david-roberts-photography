@@ -2280,32 +2280,39 @@
         requestAnimationFrame(tick);
       };
 
-      // Detect when scrolling has truly stopped by watching scrollY go still
-      let lastScrollY = -1;
+      // Detect when scrolling has truly stopped, then snap.
+      // A single persistent timer watches scrollY; it is NOT reset on every scroll
+      // event (that was the bug - iOS fires scroll continuously during momentum,
+      // so resetting meant it never counted enough still frames to fire).
+      let lastScrollY = window.scrollY;
       let stillCount = 0;
-      let stillChecker = null;
-      const watchForStop = () => {
-        clearInterval(stillChecker);
-        stillCount = 0;
-        lastScrollY = window.scrollY;
-        stillChecker = setInterval(() => {
-          if (snapping) { clearInterval(stillChecker); return; }
-          if (Math.abs(window.scrollY - lastScrollY) < 1) {
+      let scrollIdle = true;
+
+      setInterval(() => {
+        if (!isMobile() || snapping) { stillCount = 0; lastScrollY = window.scrollY; return; }
+        const y = window.scrollY;
+        if (Math.abs(y - lastScrollY) < 1.5) {
+          // Position hasn't changed since last check
+          if (!scrollIdle) {
             stillCount++;
-            if (stillCount >= 2) { // ~2 frames of stillness = momentum done
-              clearInterval(stillChecker);
+            if (stillCount >= 2) { // ~160ms of stillness = momentum finished
+              scrollIdle = true;
+              stillCount = 0;
               snapToNearest();
             }
-          } else {
-            stillCount = 0;
           }
-          lastScrollY = window.scrollY;
-        }, 60);
-      };
+        } else {
+          // Still moving
+          scrollIdle = false;
+          stillCount = 0;
+        }
+        lastScrollY = y;
+      }, 80);
 
       const onScroll = () => {
         if (snapping) return; // don't re-trigger during our own snap animation
-        watchForStop();
+        scrollIdle = false; // mark active; the persistent timer handles stop detection
+        stillCount = 0;
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
