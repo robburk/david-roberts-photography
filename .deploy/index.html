@@ -1110,6 +1110,8 @@
       .archive-horizontal .entry:nth-child(even) .photo-frame {
         grid-row: 1;
         align-self: end;
+        justify-self: center;
+        width: min(56vw, 880px);
         aspect-ratio: 3 / 2;
         max-height: calc(var(--h-spine-y) - 48px);
         margin-bottom: clamp(14px, 2.4vh, 24px);
@@ -1117,7 +1119,9 @@
       }
 
       .archive-horizontal .photo-frame img {
-        object-fit: contain;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       .archive-horizontal .copy,
