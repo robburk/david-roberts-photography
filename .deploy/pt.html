@@ -2205,7 +2205,43 @@
       };
 
       let ticking = false;
+      let snapTimer = null;
+      let snapping = false;
+
+      // Gentle snap-to-page after scrolling stops (mobile only).
+      // Fires only when settled and close to a boundary, so it never fights momentum.
+      const snapToNearest = () => {
+        if (!isMobile() || snapping) return;
+        const step = window.innerHeight * 0.52;
+        const scenesCount = entries.length + 3;
+        const raw = window.scrollY / step;
+        const nearest = Math.round(raw);
+        const target = clamp(nearest, 0, scenesCount - 1) * step;
+        const dist = target - window.scrollY;
+        // Already on target - nothing to do
+        if (Math.abs(dist) < 3) return;
+
+        snapping = true;
+        const start = window.scrollY;
+        const t0 = performance.now();
+        const dur = 320;
+        const tick = (now) => {
+          const p = Math.min((now - t0) / dur, 1);
+          const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic
+          window.scrollTo(0, start + dist * ease);
+          if (p < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            snapping = false;
+          }
+        };
+        requestAnimationFrame(tick);
+      };
+
       const onScroll = () => {
+        if (snapping) return; // don't re-trigger during our own snap animation
+        clearTimeout(snapTimer);
+        snapTimer = setTimeout(snapToNearest, 120);
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
