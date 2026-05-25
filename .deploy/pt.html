@@ -1230,7 +1230,7 @@
         }
 
         .archive-horizontal .site {
-          min-height: calc(var(--scene-count, 12) * 56svh);
+          min-height: calc(var(--scene-count, 12) * 62svh);
         }
 
         .archive-horizontal .spine {
@@ -1959,8 +1959,8 @@
           if (mobile) clearMobileAtmosphere();
         }
 
-        const aboutFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 1 - progress)));
-        const contactFocus = Math.max(0, 1 - smoothstep(0.08, 0.9, Math.abs(entries.length + 2 - progress)));
+        const aboutFocus = Math.max(0, 1 - smoothstep(0.08, 0.95, Math.abs(entries.length + 1 - progress)));
+        const contactFocus = Math.max(0, 1 - smoothstep(0.08, 0.95, Math.abs(entries.length + 2 - progress)));
         if (aboutFocus > 0.2) setMobileLabel("About");
         if (contactFocus > 0.2) setMobileLabel("Contact");
       };
