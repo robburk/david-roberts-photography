@@ -1192,7 +1192,7 @@
 
       @media (max-width: 820px) {
         body.archive-horizontal {
-          --h-spine-y: 64%;
+          --h-spine-y: 67%;
         }
 
         .mobile-atmosphere {
@@ -1237,12 +1237,12 @@
           width: calc(100vw - 64px);
           height: 1px;
           left: 50%;
-          top: 64svh;
+          top: var(--spine-px, 67vh);
         }
 
         .archive-horizontal .identity {
           left: 0;
-          top: calc(64svh - 94px);
+          top: calc(var(--spine-px, 67vh) - 94px);
           width: 100vw;
           padding-left: 34px;
           padding-right: 34px;
@@ -1252,9 +1252,9 @@
         .archive-horizontal .entry:nth-child(even) {
           display: grid;
           grid-template-columns: 1fr;
-          grid-template-rows: 64svh 1fr;
+          grid-template-rows: var(--spine-px, 67vh) 1fr;
           width: 100vw;
-          height: 100svh;
+          height: var(--app-vh, 100svh);
           padding: 0;
         }
 
@@ -1346,7 +1346,7 @@
         .archive-horizontal .contact .book-link {
           left: 32px;
           right: 32px;
-          top: calc(64svh - clamp(76px, 13vh, 118px) + 28px);
+          top: calc(var(--spine-px, 67vh) - clamp(76px, 13vh, 118px) + 28px);
           width: fit-content;
           max-width: calc(100vw - 64px);
           font-size: clamp(1.7rem, 10vw, 3.15rem);
@@ -1656,20 +1656,24 @@
       const clearMobileAtmosphere = () => {
         if (atmosphere) atmosphere.style.opacity = "0";
       };
-      let SPINE_PX = Math.round(window.innerHeight * 0.64);
+      // Lock the viewport height ONCE at first load. Chrome/Safari mobile toolbars
+      // show/hide on scroll and change innerHeight - locking prevents layout shift,
+      // text drifting out of frame, and snap targets moving under the user.
+      let APP_VH = window.innerHeight;
+      let SPINE_PX = Math.round(APP_VH * 0.64);
+      const SPINE_RATIO_MOBILE = 0.67; // spine lower on mobile = more room for text below
+      const SPINE_RATIO_DESKTOP = 0.80;
+
       const syncArchiveMode = () => {
         document.body.classList.add("archive-horizontal");
         document.documentElement.style.setProperty("--scene-count", entries.length + 3);
         const mob = isMobile();
-        document.documentElement.style.setProperty("--h-spine-y", mob ? "64%" : "80%");
-        // Read the actual rendered spine position so JS connectors match CSS exactly (svh-safe)
-        const spineEl = document.querySelector(".spine");
-        if (spineEl && mob) {
-          SPINE_PX = Math.round(spineEl.getBoundingClientRect().top);
-        } else {
-          SPINE_PX = Math.round(window.innerHeight * (mob ? 0.64 : 0.80));
-        }
+        const ratio = mob ? SPINE_RATIO_MOBILE : SPINE_RATIO_DESKTOP;
+        SPINE_PX = Math.round(APP_VH * ratio);
+        // Lock all layout to the captured height in pixels - no svh/vh/toolbar drift
+        document.documentElement.style.setProperty("--app-vh", `${APP_VH}px`);
         document.documentElement.style.setProperty("--spine-px", `${SPINE_PX}px`);
+        document.documentElement.style.setProperty("--h-spine-y", `${Math.round(ratio * 100)}%`);
         document.documentElement.style.scrollSnapType = "none";
       };
       syncArchiveMode();
@@ -1843,8 +1847,7 @@
       mobileJumpButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const dir  = Number(button.dataset.mobileJump) || 1;
-          const vh   = window.innerHeight;
-          const step = vh * (isMobile() ? 0.52 : 0.88);
+          const step = APP_VH * (isMobile() ? 0.52 : 0.88);
           const scenes = [intro, ...entries, about, contact];
           const current = Math.round(window.scrollY / step);
           const next    = clamp(current + dir, 0, scenes.length - 1);
@@ -1863,7 +1866,7 @@
       };
 
       const frameHorizontal = () => {
-        const vh = window.innerHeight;
+        const vh = APP_VH;
         const vw = window.innerWidth;
         const mobile = isMobile();
         const scenes = [intro, ...entries, about, contact];
@@ -2241,7 +2244,7 @@
       // Waits for iOS momentum to finish, then eases to the nearest scene.
       const snapToNearest = () => {
         if (!isMobile() || snapping) return;
-        const step = window.innerHeight * 0.52;
+        const step = APP_VH * 0.52;
         const scenesCount = entries.length + 3;
         const raw = window.scrollY / step;
         const nearest = Math.round(raw);
@@ -2304,7 +2307,14 @@
       frame();
       document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
+      let lastWidth = window.innerWidth;
       window.addEventListener("resize", () => {
+        // Only re-lock height on a real width change (orientation/rotate),
+        // NOT when the mobile toolbar shows/hides (height-only change).
+        if (window.innerWidth !== lastWidth) {
+          lastWidth = window.innerWidth;
+          APP_VH = window.innerHeight;
+        }
         syncArchiveMode();
         onScroll();
       });
