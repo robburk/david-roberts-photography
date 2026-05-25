@@ -1217,29 +1217,33 @@
           overflow: visible;
         }
 
-        /* Un-fix / un-stack every scene: put them back in normal flow */
+        /* Un-fix / un-stack every scene: put them back in normal flow.
+           !important here because the desktop rules (position:fixed/absolute)
+           share the same selector specificity - this guarantees the mobile
+           page-flow layout always wins inside this breakpoint. */
         .archive-horizontal .intro,
         .archive-horizontal .archive,
         .archive-horizontal .about,
         .archive-horizontal .contact,
         .archive-horizontal .entry,
         .archive-horizontal .entry:nth-child(even) {
-          position: relative;
-          inset: auto;
-          left: auto;
-          top: auto;
-          right: auto;
-          transform: none;
-          opacity: 1;
-          pointer-events: auto;
-          width: 100vw;
-          margin: 0;
-          padding: 0;
+          position: relative !important;
+          inset: auto !important;
+          left: auto !important;
+          top: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          transform: none !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          width: 100vw !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
         /* .archive is just a passthrough so its 9 entries flow as pages */
         .archive-horizontal .archive {
-          display: contents;
+          display: contents !important;
         }
 
         /* Each scene = one full-height snap page */
@@ -1261,6 +1265,8 @@
           display: none; /* global fixed spine hidden; each page draws its own */
         }
 
+        /* Per-page horizontal spine line at the image/text boundary on the
+           photo pages (entries) - matches the desktop spine look */
         .archive-horizontal .entry::after {
           content: "";
           position: absolute;
@@ -1268,19 +1274,20 @@
           right: 32px;
           top: var(--spine-px, 67svh);
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(21,21,21,0.32) 12%, rgba(21,21,21,0.32) 88%, transparent);
+          background: linear-gradient(90deg, transparent, rgba(21,21,21,0.34) 12%, rgba(21,21,21,0.34) 88%, transparent);
           display: block;
+          z-index: 3;
         }
 
         .archive-horizontal .entry::before { display: none; }
 
-        /* hide the JS connector lines/dial on mobile - not used in page mode */
+        /* hide the JS connector lines/dial on mobile - not used in page mode.
+           NOTE: do NOT hide .identity here - the intro title lives in it. */
         .archive-horizontal .conn-line,
         .archive-horizontal .conn-node,
         .archive-horizontal .conn-index,
         .archive-horizontal .archive-dial,
-        .archive-horizontal .archive-readout,
-        .archive-horizontal .identity {
+        .archive-horizontal .archive-readout {
           display: none;
         }
 
@@ -1355,9 +1362,35 @@
         /* INTRO page */
         .archive-horizontal .intro {
           place-content: center;
+          place-items: center start;
           grid-template-rows: 1fr;
           padding: 0 28px;
           text-align: left;
+        }
+
+        .archive-horizontal .intro .identity {
+          position: relative;
+          inset: auto;
+          left: auto;
+          top: auto;
+          width: 100%;
+          transform: none;
+          opacity: 1;
+          display: block;
+        }
+
+        .archive-horizontal .intro h1 {
+          font-size: clamp(2.6rem, 16vw, 4.6rem);
+          line-height: 1.0;
+          margin: 0;
+        }
+
+        .archive-horizontal .intro .subtitle {
+          margin-top: 14px;
+          font-size: 0.74rem;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: var(--muted);
         }
 
         /* ABOUT / CONTACT pages */
