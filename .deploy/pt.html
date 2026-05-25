@@ -2208,8 +2208,8 @@
       let snapTimer = null;
       let snapping = false;
 
-      // Gentle snap-to-page after scrolling stops (mobile only).
-      // Fires only when settled and close to a boundary, so it never fights momentum.
+      // Gentle snap-to-page after scrolling fully stops (mobile only).
+      // Waits for iOS momentum to finish, then eases to the nearest scene.
       const snapToNearest = () => {
         if (!isMobile() || snapping) return;
         const step = window.innerHeight * 0.52;
@@ -2218,13 +2218,13 @@
         const nearest = Math.round(raw);
         const target = clamp(nearest, 0, scenesCount - 1) * step;
         const dist = target - window.scrollY;
-        // Already on target - nothing to do
-        if (Math.abs(dist) < 3) return;
+        // Already basically on target
+        if (Math.abs(dist) < 4) return;
 
         snapping = true;
         const start = window.scrollY;
         const t0 = performance.now();
-        const dur = 320;
+        const dur = 380;
         const tick = (now) => {
           const p = Math.min((now - t0) / dur, 1);
           const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic
@@ -2238,10 +2238,32 @@
         requestAnimationFrame(tick);
       };
 
+      // Detect when scrolling has truly stopped by watching scrollY go still
+      let lastScrollY = -1;
+      let stillCount = 0;
+      let stillChecker = null;
+      const watchForStop = () => {
+        clearInterval(stillChecker);
+        stillCount = 0;
+        lastScrollY = window.scrollY;
+        stillChecker = setInterval(() => {
+          if (snapping) { clearInterval(stillChecker); return; }
+          if (Math.abs(window.scrollY - lastScrollY) < 1) {
+            stillCount++;
+            if (stillCount >= 2) { // ~2 frames of stillness = momentum done
+              clearInterval(stillChecker);
+              snapToNearest();
+            }
+          } else {
+            stillCount = 0;
+          }
+          lastScrollY = window.scrollY;
+        }, 60);
+      };
+
       const onScroll = () => {
         if (snapping) return; // don't re-trigger during our own snap animation
-        clearTimeout(snapTimer);
-        snapTimer = setTimeout(snapToNearest, 120);
+        watchForStop();
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
