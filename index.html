@@ -1900,6 +1900,9 @@
           const scenes = [intro, ...entries, about, contact];
           const current = Math.round(window.scrollY / step);
           const next    = clamp(current + dir, 0, scenes.length - 1);
+          // Instant jump to the target scene. We deliberately do NOT use
+          // scroll-behavior:smooth here - it breaks window.scrollTo on iOS Safari
+          // (learned the hard way). Native snap keeps the landing clean.
           window.scrollTo(0, next * step);
         });
       });
