@@ -1198,101 +1198,112 @@
           --h-spine-y: 67%;
         }
 
-        /* Native scroll-snap on mobile - compositor-driven, cannot be throttled.
-           mandatory = always lands on the nearest scene, so one swipe advances
-           exactly one page. */
+        /* ============================================================
+           MOBILE: real full-height scroll sections with native snap.
+           Each scene is a real page in normal document flow. One swipe =
+           one page (scroll-snap-type: y mandatory). The image slides
+           horizontally as the section scrolls through the viewport, driven
+           by a transform set in JS from the section's real position - so it
+           keeps the desktop Rolodex feel but with real, reliable scrolling.
+           ============================================================ */
         html {
-          scroll-snap-type: none;
-        }
-
-        .mobile-atmosphere {
-          position: fixed;
-          inset: 0;
-          z-index: 0;
-          display: block;
-          pointer-events: none;
-          overflow: hidden;
-          opacity: 0.28;
-        }
-
-        .mobile-atmosphere::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.72) 22%, rgba(255, 255, 255, 0.68) 72%, #fff 100%),
-            rgba(255, 255, 255, 0.68);
-        }
-
-        .mobile-atmosphere__layer {
-          position: absolute;
-          inset: -46px;
-          background-position: center;
-          background-size: cover;
-          filter: blur(18px) saturate(0.88) brightness(1.1);
-          opacity: 0;
-          transform: scale(1.12);
-          transition: opacity 0.55s ease;
-        }
-
-        .mobile-atmosphere__layer.is-active {
-          opacity: 1;
+          scroll-snap-type: y mandatory;
+          -webkit-overflow-scrolling: touch;
         }
 
         .archive-horizontal .site {
-          min-height: var(--site-h, calc(var(--scene-count, 12) * 57svh));
+          min-height: 0;
+          height: auto;
+          overflow: visible;
         }
 
-        .archive-horizontal .spine {
-          width: calc(100vw - 64px);
-          height: 1px;
-          left: 50%;
-          top: var(--spine-px, 67vh);
-        }
-
-        .archive-horizontal .identity {
-          left: 0;
-          top: calc(var(--spine-px, 67vh) - 94px);
-          width: 100vw;
-          padding-left: 34px;
-          padding-right: 34px;
-        }
-
+        /* Un-fix / un-stack every scene: put them back in normal flow.
+           !important here because the desktop rules (position:fixed/absolute)
+           share the same selector specificity - this guarantees the mobile
+           page-flow layout always wins inside this breakpoint. */
+        .archive-horizontal .intro,
+        .archive-horizontal .archive,
+        .archive-horizontal .about,
+        .archive-horizontal .contact,
         .archive-horizontal .entry,
         .archive-horizontal .entry:nth-child(even) {
+          position: relative !important;
+          inset: auto !important;
+          left: auto !important;
+          top: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          transform: none !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          width: 100vw !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* .archive is just a passthrough so its 9 entries flow as pages */
+        .archive-horizontal .archive {
+          display: contents !important;
+        }
+
+        /* Each scene = one full-height snap page */
+        .archive-horizontal .intro,
+        .archive-horizontal .entry,
+        .archive-horizontal .about,
+        .archive-horizontal .contact {
+          height: 100svh;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
+          overflow: hidden;
           display: grid;
           grid-template-columns: 1fr;
-          grid-template-rows: var(--spine-px, 67vh) 1fr;
-          width: 100vw;
-          height: var(--app-vh, 100svh);
-          padding: 0;
+          grid-template-rows: var(--spine-px, 67svh) 1fr;
         }
 
-        .archive-horizontal .entry::before,
+        /* The spine is drawn per-scene, sitting at the row boundary */
+        .archive-horizontal .spine {
+          display: none; /* global fixed spine hidden; each page draws its own */
+        }
+
+        /* Per-page horizontal spine line at the image/text boundary on the
+           photo pages (entries) - matches the desktop spine look */
         .archive-horizontal .entry::after {
-          display: none;
-        }
-
-        .archive-horizontal .conn-line.is-active,
-        .archive-horizontal .conn-node.is-active,
-        .archive-horizontal .conn-index {
+          content: "";
+          position: absolute;
+          left: 32px;
+          right: 32px;
+          top: var(--spine-px, 67svh);
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(21,21,21,0.34) 12%, rgba(21,21,21,0.34) 88%, transparent);
           display: block;
+          z-index: 3;
         }
 
-        .archive-horizontal .conn-line.is-copy,
-        .archive-horizontal .conn-node.is-copy {
+        .archive-horizontal .entry::before { display: none; }
+
+        /* hide the JS connector lines/dial on mobile - not used in page mode.
+           NOTE: do NOT hide .identity here - the intro title lives in it. */
+        .archive-horizontal .conn-line,
+        .archive-horizontal .conn-node,
+        .archive-horizontal .conn-index,
+        .archive-horizontal .archive-dial,
+        .archive-horizontal .archive-readout {
           display: none;
         }
 
+        /* PHOTO: fills the zone above the spine, slides horizontally via --slide-x */
         .archive-horizontal .photo-frame,
         .archive-horizontal .entry:nth-child(even) .photo-frame {
           grid-column: 1;
           grid-row: 1;
           position: relative;
           width: 100%;
-          height: calc(100% - clamp(40px, 8vh, 80px));
+          height: calc(100% - clamp(34px, 6vh, 64px));
           align-self: center;
+          justify-self: center;
           overflow: hidden;
+          transform: translateX(var(--slide-x, 0px));
+          will-change: transform;
         }
 
         .archive-horizontal .photo-frame img {
@@ -1304,6 +1315,7 @@
           object-position: center;
         }
 
+        /* TEXT: below the spine, full width, left aligned, readable */
         .archive-horizontal .copy,
         .archive-horizontal .entry:nth-child(even) .copy {
           grid-column: 1;
@@ -1313,7 +1325,7 @@
           display: block;
           width: 100%;
           max-width: 100%;
-          margin-top: 14px;
+          margin-top: 16px;
           padding: 0 22px;
           text-align: left;
           box-sizing: border-box;
@@ -1347,18 +1359,66 @@
           color: var(--body);
         }
 
+        /* INTRO page */
+        .archive-horizontal .intro {
+          place-content: center;
+          place-items: center start;
+          grid-template-rows: 1fr;
+          padding: 0 28px;
+          text-align: left;
+        }
+
+        .archive-horizontal .intro .identity {
+          position: relative;
+          inset: auto;
+          left: auto;
+          top: auto;
+          width: 100%;
+          transform: none;
+          opacity: 1;
+          display: block;
+        }
+
+        .archive-horizontal .intro h1 {
+          font-size: clamp(2.6rem, 16vw, 4.6rem);
+          line-height: 1.0;
+          margin: 0;
+        }
+
+        .archive-horizontal .intro .subtitle {
+          margin-top: 14px;
+          font-size: 0.74rem;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+
+        /* ABOUT / CONTACT pages */
+        .archive-horizontal .about,
+        .archive-horizontal .contact {
+          grid-template-rows: 1fr;
+          place-content: center;
+          padding: 0 32px;
+        }
+
         .archive-horizontal .about__inner,
         .archive-horizontal .contact__inner {
-          left: 32px;
-          right: 32px;
-          top: clamp(76px, 13vh, 118px);
-          width: auto;
+          position: relative;
+          left: auto;
+          right: auto;
+          top: auto;
+          width: 100%;
+          max-width: 100%;
+          opacity: 1;
+          filter: none;
+          transform: none;
         }
 
         .archive-horizontal .contact .book-link {
-          left: 32px;
-          right: 32px;
-          top: calc(var(--spine-px, 67vh) - clamp(76px, 13vh, 118px) + 28px);
+          position: relative;
+          left: auto;
+          top: auto;
+          margin-top: 18px;
           width: fit-content;
           max-width: calc(100vw - 64px);
           font-size: clamp(1.7rem, 10vw, 3.15rem);
@@ -1678,7 +1738,7 @@
       const SPINE_RATIO_DESKTOP = 0.80;
       // Scroll distance per scene, as a fraction of the locked viewport height.
       // Bigger = more scroll per scene = easier to control and land on a photo.
-      const STEP_RATIO_MOBILE = 0.92;
+      const STEP_RATIO_MOBILE = 1.15;
       const STEP_RATIO_DESKTOP = 0.88;
 
       const syncArchiveMode = () => {
@@ -1688,30 +1748,26 @@
         const mob = isMobile();
         const ratio = mob ? SPINE_RATIO_MOBILE : SPINE_RATIO_DESKTOP;
         SPINE_PX = Math.round(APP_VH * ratio);
-        STEP_PX = Math.round(APP_VH * (mob ? STEP_RATIO_MOBILE : STEP_RATIO_DESKTOP));
-        // The scrollable distance must be EXACTLY (sceneCount-1) steps so progress
-        // runs 0..sceneCount-1 and the last scene (contact) is precisely reachable.
-        // site height = that scroll distance + one viewport. All in px, one unit,
-        // so CSS height and JS step can never diverge (this was the Safari bug).
-        const siteH = (sceneCount - 1) * STEP_PX + APP_VH;
-        // Lock all layout to the captured height in pixels - no svh/vh/toolbar drift
         document.documentElement.style.setProperty("--app-vh", `${APP_VH}px`);
-        document.documentElement.style.setProperty("--site-h", `${siteH}px`);
         document.documentElement.style.setProperty("--spine-px", `${SPINE_PX}px`);
         document.documentElement.style.setProperty("--h-spine-y", `${Math.round(ratio * 100)}%`);
 
-        // Native CSS scroll-snap (proximity = gentle, only snaps when you're near a
-        // point, never fights a long flick). Compositor-driven, so it works on iOS
-        // and can never be throttled like JS timers. We place one invisible marker
-        // per scene at its exact scroll position inside .site.
+        if (mob) {
+          // MOBILE: real flow pages. CSS handles full-height sections + native
+          // scroll-snap. No JS site-height or snap markers needed - the browser
+          // owns scrolling. Spine uses svh directly per page.
+          document.documentElement.style.setProperty("--spine-px", `${Math.round(window.innerHeight * SPINE_RATIO_MOBILE)}px`);
+          return;
+        }
+
+        // DESKTOP: faked horizontal Rolodex - scenes stacked, JS-driven step.
+        STEP_PX = Math.round(APP_VH * STEP_RATIO_DESKTOP);
+        const siteH = (sceneCount - 1) * STEP_PX + APP_VH;
+        document.documentElement.style.setProperty("--site-h", `${siteH}px`);
         buildSnapMarkers(sceneCount);
       };
 
-      // Build / rebuild scroll-snap targets, one per scene. Each is a real,
-      // full-width block exactly STEP_PX tall, stacked in normal flow inside
-      // .site. Substantial in-flow blocks are far more reliable snap targets
-      // than 1px absolute points (which the snap engine often ignores), so
-      // mandatory snap lands cleanly = one swipe advances exactly one scene.
+      // Build / rebuild invisible scroll-snap point markers, one per scene.
       let snapHost = null;
       const buildSnapMarkers = (sceneCount) => {
         const site = document.querySelector(".site");
@@ -1719,13 +1775,13 @@
         if (!snapHost) {
           snapHost = document.createElement("div");
           snapHost.setAttribute("aria-hidden", "true");
-          snapHost.style.cssText = "position:absolute;left:0;top:0;width:100%;pointer-events:none;z-index:-1";
+          snapHost.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:-1";
           site.appendChild(snapHost);
         }
         snapHost.innerHTML = "";
         for (let i = 0; i < sceneCount; i++) {
           const m = document.createElement("div");
-          m.style.cssText = `width:100%;height:${STEP_PX}px;`;
+          m.style.cssText = `position:absolute;left:0;width:1px;height:1px;top:${i * STEP_PX}px;scroll-snap-align:start`;
           snapHost.appendChild(m);
         }
       };
@@ -2055,8 +2111,47 @@
         if (contactFocus > 0.2) setMobileLabel("Contact");
       };
 
+      // MOBILE page mode: scroll is real and native (one swipe = one snap page).
+      // We only read each scene's real position and slide its photo horizontally
+      // to keep the Rolodex feel. No scroll manipulation - the browser owns scroll.
+      const mobileScenes = () => [intro, ...entries, about, contact];
+      const frameMobilePages = () => {
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
+        const scenes = mobileScenes();
+        // travel: how far the image slides across as a section passes through.
+        const travel = Math.min(vw * 0.5, 280);
+        let activeIdx = 0;
+        let bestDist = Infinity;
+        scenes.forEach((scene, i) => {
+          const rect = scene.getBoundingClientRect();
+          const center = rect.top + rect.height / 2;
+          // -1 when section sits a full viewport below center, 0 centered, +1 above
+          const offset = (center - vh / 2) / vh;
+          const frame = scene.querySelector(".photo-frame");
+          if (frame) {
+            // Image slides: comes in from the right (offset>0), centers (0),
+            // exits left (offset<0). Clamp so it eases near center.
+            const x = -clamp(offset, -1, 1) * travel;
+            frame.style.setProperty("--slide-x", `${x.toFixed(1)}px`);
+          }
+          const d = Math.abs(offset);
+          if (d < bestDist) { bestDist = d; activeIdx = i; }
+        });
+        // Active scene label / atmosphere
+        const active = scenes[activeIdx];
+        const micro = active.querySelector(".micro")?.textContent;
+        if (micro) setMobileLabel(micro);
+        const img = active.querySelector(".photo-frame img");
+        if (img) setMobileAtmosphere(img.currentSrc || img.src, 1 - bestDist);
+      };
+
       const frame = () => {
         if (document.body.classList.contains("archive-horizontal")) {
+          if (isMobile()) {
+            frameMobilePages();
+            return;
+          }
           frameHorizontal();
           return;
         }
@@ -2295,52 +2390,10 @@
       };
 
       let ticking = false;
-      let snapping = false;
 
-      // Two-layer snap. CSS scroll-snap (mandatory) handles it natively on real
-      // touch devices. As a reliable backstop - the synthetic-scroll path and any
-      // device where CSS snap under-engages - a JS watcher detects when scrolling
-      // has stopped and eases to the nearest scene with setInterval (NOT rAF,
-      // which gets throttled). This combination is what finally lands every swipe.
-      const easeToScene = () => {
-        if (snapping || !isMobile()) return;
-        const step = STEP_PX;
-        const count = entries.length + 3;
-        const target = Math.max(0, Math.min(count - 1, Math.round(window.scrollY / step))) * step;
-        const dist = target - window.scrollY;
-        if (Math.abs(dist) < 2) return;
-        snapping = true;
-        const start = window.scrollY;
-        const t0 = performance.now();
-        const dur = 300;
-        clearInterval(window.__snapAnim);
-        clearTimeout(window.__snapSafety);
-        window.__snapSafety = setTimeout(() => { snapping = false; }, dur + 250);
-        window.__snapAnim = setInterval(() => {
-          const p = Math.min((performance.now() - t0) / dur, 1);
-          const ease = 1 - Math.pow(1 - p, 3);
-          window.scrollTo(0, Math.round(start + dist * ease));
-          if (p >= 1) { clearInterval(window.__snapAnim); snapping = false; }
-        }, 16);
-      };
-
-      // Detect scroll-stop with a single persistent timer (never reset by scroll
-      // events - that was an earlier bug). When position holds still after having
-      // moved, ease to the nearest scene.
-      let __lastY = window.scrollY;
-      let __moved = false;
-      let __stable = 0;
-      setInterval(() => {
-        if (!isMobile()) return;
-        if (snapping) { __lastY = window.scrollY; __stable = 0; return; }
-        const y = window.scrollY;
-        if (Math.abs(y - __lastY) > 1) { __moved = true; __stable = 0; }
-        else {
-          __stable += 90;
-          if (__moved && __stable >= 180) { __moved = false; __stable = 0; easeToScene(); }
-        }
-        __lastY = y;
-      }, 90);
+      // Snapping is handled by native CSS scroll-snap (see buildSnapMarkers and the
+      // `scroll-snap-type: y proximity` rule). No JS scroll animation - that proved
+      // unreliable on iOS (timers throttled, scrollTo rejected mid-momentum).
 
       const onScroll = () => {
         if (ticking) return;
@@ -2354,6 +2407,47 @@
       frame();
       document.body.classList.add("is-mobile-ready");
       window.addEventListener("scroll", onScroll, { passive: true });
+
+      // ?debug overlay - live scroll diagnostics for on-device testing.
+      if (new URLSearchParams(location.search).has("debug")) {
+        const box = document.createElement("pre");
+        box.style.cssText = "position:fixed;z-index:999999;left:8px;top:8px;width:calc(100vw - 16px);max-height:42vh;overflow:auto;padding:8px;font:11px/1.35 monospace;color:#111;background:rgba(255,255,255,.92);border:1px solid #ccc;pointer-events:none;white-space:pre-wrap";
+        document.body.appendChild(box);
+        const se = () => document.scrollingElement || document.documentElement;
+        let scrollEvents = 0, lastScrollEvent = 0, lastTouchEnd = 0, lastSnapAttempt = "none";
+        window.addEventListener("scroll", () => { scrollEvents++; lastScrollEvent = performance.now(); }, { passive: true });
+        window.addEventListener("touchend", () => { lastTouchEnd = performance.now(); }, { passive: true });
+        window.__debugScrollTo = (y) => {
+          const before = { winY: window.scrollY, seTop: se().scrollTop };
+          window.scrollTo(0, y);
+          setTimeout(() => {
+            const after = { winY: window.scrollY, seTop: se().scrollTop };
+            lastSnapAttempt = JSON.stringify({ target: y, before, after });
+          }, 120);
+        };
+        setInterval(() => {
+          const root = se();
+          const vv = window.visualViewport;
+          const scenes = mobileScenes();
+          const slideX = scenes[1] && scenes[1].querySelector(".photo-frame")
+            ? getComputedStyle(scenes[1].querySelector(".photo-frame")).getPropertyValue("--slide-x").trim() : "n/a";
+          box.textContent = [
+            "inner: " + window.innerWidth + " x " + window.innerHeight,
+            "isMobile(): " + isMobile(),
+            "scroller: " + root.tagName,
+            "window.scrollY: " + window.scrollY.toFixed(1),
+            "scrollingElement.scrollTop: " + root.scrollTop.toFixed(1),
+            "scrollHeight: " + root.scrollHeight + "  clientHeight: " + root.clientHeight,
+            "css snap (html): " + getComputedStyle(document.documentElement).scrollSnapType,
+            "scroll events: " + scrollEvents,
+            "ms since scroll: " + (performance.now() - lastScrollEvent).toFixed(0),
+            "ms since touchend: " + (performance.now() - lastTouchEnd).toFixed(0),
+            "vv height: " + (vv ? vv.height.toFixed(0) : "none"),
+            "entry[1] --slide-x: " + slideX,
+            "last __debugScrollTo: " + lastSnapAttempt
+          ].join("\n");
+        }, 150);
+      }
 
       let lastWidth = window.innerWidth;
       // Recompute everything after the viewport settles. On a WIDTH change
