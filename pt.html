@@ -1716,7 +1716,7 @@
         snapHost.innerHTML = "";
         for (let i = 0; i < sceneCount; i++) {
           const m = document.createElement("div");
-          m.style.cssText = `position:absolute;left:0;width:1px;height:2px;top:${i * STEP_PX}px;scroll-snap-align:start;scroll-snap-stop:always`;
+          m.style.cssText = `position:absolute;left:0;width:1px;height:2px;top:${i * STEP_PX}px;scroll-snap-align:start`;
           snapHost.appendChild(m);
         }
       };
