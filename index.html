@@ -1074,8 +1074,16 @@
       .archive-horizontal .identity {
         left: 50%;
         top: calc(var(--h-spine-y) - 104px);
-        padding-left: 96px;
+        padding-left: 32px;
         transform: translateY(-50%);
+      }
+      .archive-horizontal .intro .subtitle {
+        white-space: nowrap;
+      }
+      /* Hide the orphan intro connector line: it dangles below the spine into
+         empty space pointing at nothing. Keep the node (small dot) as a marker. */
+      .archive-horizontal .conn-line.is-intro {
+        display: none;
       }
 
       .archive-horizontal .archive {
@@ -1274,9 +1282,14 @@
         }
 
         .archive-horizontal .conn-line.is-active,
-        .archive-horizontal .conn-node.is-active,
-        .archive-horizontal .conn-index {
+        .archive-horizontal .conn-node.is-active {
           display: block;
+        }
+
+        /* Index readout hidden: it collided with the caption and duplicated the
+           bottom-left status strip. */
+        .archive-horizontal .conn-index {
+          display: none;
         }
 
         .archive-horizontal .conn-line.is-copy,
@@ -1943,16 +1956,19 @@
         intro.style.setProperty("--intro-y", "0px");
         intro.style.setProperty("--intro-scale", `${0.985 + idFocus * 0.015}`);
 
-        const introLen = (mobile ? 46 : 70) * (0.35 + 0.65 * idFocus);
+        // Connector tick rises from the spine toward the title, and fades out
+        // sharply (gone well before entry 1) so it never floats in empty space.
+        const introTickFocus = 1 - smoothstep(0.0, 0.55, Math.abs(idDelta));
+        const introLen = (mobile ? 46 : 70) * (0.35 + 0.65 * introTickFocus);
         placeLine(introLine, {
-          side: "down",
+          side: "up",
           top: spineY,
           length: introLen,
-          opacity: idFocus * 0.85,
+          opacity: introTickFocus * 0.85,
           sx,
           orient: "vertical",
         });
-        placeNode(introNode, { top: spineY, opacity: idFocus, sx });
+        placeNode(introNode, { top: spineY, opacity: introTickFocus, sx });
 
         let activeEntry = null;
         let activeEntryFocus = 0;
