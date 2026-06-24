@@ -1943,8 +1943,12 @@
         const step = STEP_PX;
         const progress = clamp(window.scrollY / step, 0, scenes.length - 1);
         const activeIdx = Math.round(progress);
-        // Use the SAME stable spine pixel the CSS uses - no svh/vh mismatch, cached
-        const spineY = SPINE_PX;
+        // Anchor connector nodes/lines to the ACTUAL rendered spine position, not
+        // the computed SPINE_PX (the CSS spine uses a % that resolves differently,
+        // which left the nodes floating ~49px below the visible line).
+        const spineEl = document.querySelector(".spine");
+        const spineRect = spineEl ? spineEl.getBoundingClientRect() : null;
+        const spineY = spineRect && spineRect.height ? spineRect.top : SPINE_PX;
         const sx = vw / 2;
 
         scenes.forEach((scene, i) => setScene(scene, i - progress, i === activeIdx));
