@@ -464,6 +464,71 @@
         display: block;
       }
 
+      /* Minimal pause/play control on the video entry */
+      .video-toggle {
+        position: absolute;
+        z-index: 6;
+        right: 16px;
+        bottom: 16px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        background: rgba(20, 20, 20, 0.32);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        opacity: 0;
+        transition: opacity 0.25s ease, background 0.2s ease;
+        pointer-events: none;
+      }
+
+      .archive-horizontal .entry.is-video.is-h-active .video-toggle {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .video-toggle:hover {
+        background: rgba(20, 20, 20, 0.5);
+      }
+
+      /* Pause icon = two bars (default, when playing) */
+      .video-toggle__icon,
+      .video-toggle__icon::before {
+        content: "";
+        display: block;
+        background: rgba(255, 255, 255, 0.92);
+      }
+      .video-toggle__icon {
+        position: relative;
+        width: 4px;
+        height: 13px;
+      }
+      .video-toggle__icon::before {
+        position: absolute;
+        left: 7px;
+        top: 0;
+        width: 4px;
+        height: 13px;
+      }
+
+      /* Play icon = single triangle (when paused) */
+      .video-toggle[data-state="paused"] .video-toggle__icon {
+        width: 0;
+        height: 0;
+        background: transparent;
+        border-style: solid;
+        border-width: 7px 0 7px 12px;
+        border-color: transparent transparent transparent rgba(255, 255, 255, 0.92);
+        margin-left: 3px;
+      }
+      .video-toggle[data-state="paused"] .video-toggle__icon::before {
+        display: none;
+      }
+
       .image-clip {
         position: absolute;
         inset: 0;
@@ -490,13 +555,13 @@
         inset: 0;
         z-index: 3;
         pointer-events: none;
-        opacity: calc(var(--roll-opacity) * 0.48);
+        opacity: var(--roll-sweep, 0);
         background:
           linear-gradient(
             90deg,
             transparent 0,
             transparent calc(var(--scan-x, 50%) - 0.6px),
-            rgba(255, 255, 255, 0.7) var(--scan-x, 50%),
+            rgba(255, 255, 255, 0.6) var(--scan-x, 50%),
             transparent calc(var(--scan-x, 50%) + 0.8px),
             transparent 100%
           );
@@ -1600,9 +1665,12 @@
               muted
               loop
               playsinline
-              preload="none"
+              preload="metadata"
               aria-label="Aerial video over Fort Jeudy, Grenada"
             ></video>
+            <button type="button" class="video-toggle" aria-label="Pause video" data-state="playing">
+              <span class="video-toggle__icon" aria-hidden="true"></span>
+            </button>
           </figure>
           <div class="copy">
             <p class="micro">Aerial Film</p>
@@ -1652,6 +1720,33 @@
       const identity = document.querySelector(".identity");
       const entries = Array.from(document.querySelectorAll(".entry"));
       const archive = document.querySelector(".archive");
+
+      // Wire the video pause/play toggle button(s).
+      document.querySelectorAll(".video-toggle").forEach((btn) => {
+        const fig = btn.closest(".photo-frame");
+        const v = fig ? fig.querySelector("video.entry-video") : null;
+        if (!v) return;
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (v.paused) {
+            v.dataset.userPaused = "";
+            const p = v.play(); if (p && p.catch) p.catch(() => {});
+            btn.dataset.state = "playing";
+            btn.setAttribute("aria-label", "Pause video");
+          } else {
+            v.dataset.userPaused = "1";
+            v.pause();
+            btn.dataset.state = "paused";
+            btn.setAttribute("aria-label", "Play video");
+          }
+        });
+        // Keep the icon in sync if play/pause happens programmatically.
+        v.addEventListener("play", () => { btn.dataset.state = "playing"; btn.setAttribute("aria-label", "Pause video"); });
+        v.addEventListener("pause", () => {
+          if (v.dataset.userPaused === "1") { btn.dataset.state = "paused"; btn.setAttribute("aria-label", "Play video"); }
+        });
+      });
+
       const dialLabel = document.querySelector(".archive-readout__label");
       const dialCount = document.querySelector(".archive-readout__count");
       const contact = document.querySelector(".contact");
@@ -2033,15 +2128,35 @@
           entry.style.setProperty("--image-parallax", `${dir * eased * (mobile ? -1 : -5)}px`);
           entry.style.setProperty("--image-scale", `${mobile ? 1.001 : 1.003 + eased * 0.004}`);
           entry.style.setProperty("--scan-x", `${50 + dir * eased * 22}%`);
+          // Light-sweep glint: 0 at rest (no static centerline), rises only while
+          // the card is mid-roll and still in view, then fades as it leaves.
+          const sweepMotion = Math.min(1, abs * 3.2);
+          const rollSweep = mobile ? 0 : presence * sweepMotion * 0.5;
+          entry.style.setProperty("--roll-sweep", rollSweep.toFixed(3));
 
-          // Video entries: play while the scene is centered, pause + rewind when
-          // it leaves. preload="none" means the file only loads once you reach it.
+          // Video entries: play while the scene is centered, pause when it
+          // leaves. preload="metadata" fetches the first frame cheaply; full data loads on approach,
+          // so we kick off load() on approach, then play once it can.
           const vid = entry.querySelector("video.entry-video");
           if (vid) {
-            if (focus > 0.55) {
-              if (vid.paused) { vid.play().catch(() => {}); }
-            } else if (!vid.paused) {
-              vid.pause();
+            if (focus > 0.5) {
+              // Start buffering the first time we approach this scene.
+              if (vid.dataset.kicked !== "1") {
+                vid.dataset.kicked = "1";
+                try { vid.load(); } catch (e) {}
+              }
+              // Respect a manual pause from the button.
+              if (vid.dataset.userPaused !== "1") {
+                const tryPlay = () => { const p = vid.play(); if (p && p.catch) p.catch(() => {}); };
+                if (vid.readyState >= 2) {
+                  tryPlay();
+                } else {
+                  vid.addEventListener("canplay", tryPlay, { once: true });
+                }
+              }
+            } else {
+              if (!vid.paused) vid.pause();
+              vid.dataset.userPaused = "";
             }
           }
 
