@@ -450,6 +450,20 @@
         backface-visibility: hidden;
       }
 
+      /* Video entry: fill the frame exactly like a photo. The img-clip wrapper
+         is only applied to <img>, so the video sits directly in the frame. */
+      .photo-frame video.entry-video {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        backface-visibility: hidden;
+        display: block;
+      }
+
       .image-clip {
         position: absolute;
         inset: 0;
@@ -1125,7 +1139,8 @@
         overflow: hidden;
       }
 
-      .archive-horizontal .photo-frame img {
+      .archive-horizontal .photo-frame img,
+      .archive-horizontal .photo-frame video.entry-video {
         width: 100%;
         height: 100%;
         object-fit: cover;
@@ -1308,7 +1323,8 @@
           overflow: hidden;
         }
 
-        .archive-horizontal .photo-frame img {
+        .archive-horizontal .photo-frame img,
+        .archive-horizontal .photo-frame video.entry-video {
           position: absolute;
           inset: 0;
           width: 100%;
@@ -1574,6 +1590,24 @@
             <p class="micro">Drone Video</p>
             <h2>Cinematic motion, start to finish.</h2>
             <p class="caption">Clips for sites, social, and campaigns.</p>
+          </div>
+        </article>
+        <article class="entry is-video">
+          <figure class="photo-frame">
+            <video
+              class="entry-video"
+              src="assets/video/fort-jeudy.mp4"
+              muted
+              loop
+              playsinline
+              preload="none"
+              aria-label="Aerial video over Fort Jeudy, Grenada"
+            ></video>
+          </figure>
+          <div class="copy">
+            <p class="micro">Aerial Film</p>
+            <h2>Fort Jeudy, from the air.</h2>
+            <p class="caption">Grenada coastline, shot in motion.</p>
           </div>
         </article>
       </section>
@@ -1999,6 +2033,17 @@
           entry.style.setProperty("--image-parallax", `${dir * eased * (mobile ? -1 : -5)}px`);
           entry.style.setProperty("--image-scale", `${mobile ? 1.001 : 1.003 + eased * 0.004}`);
           entry.style.setProperty("--scan-x", `${50 + dir * eased * 22}%`);
+
+          // Video entries: play while the scene is centered, pause + rewind when
+          // it leaves. preload="none" means the file only loads once you reach it.
+          const vid = entry.querySelector("video.entry-video");
+          if (vid) {
+            if (focus > 0.55) {
+              if (vid.paused) { vid.play().catch(() => {}); }
+            } else if (!vid.paused) {
+              vid.pause();
+            }
+          }
 
           if (focus > activeEntryFocus) {
             activeEntry = entry;
