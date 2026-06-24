@@ -2089,19 +2089,32 @@
         intro.style.setProperty("--intro-y", "0px");
         intro.style.setProperty("--intro-scale", `${0.985 + idFocus * 0.015}`);
 
-        // Connector tick rises from the spine toward the title, and fades out
-        // sharply (gone well before entry 1) so it never floats in empty space.
+        // Connector tick: a vertical line that GROWS from the spine up toward the
+        // title, anchored to the TITLE's actual horizontal center (not the
+        // viewport center - the title sits off to one side). Fades out as you
+        // scroll away so it never floats in empty space.
         const introTickFocus = 1 - smoothstep(0.0, 0.55, Math.abs(idDelta));
-        const introLen = (mobile ? 46 : 70) * (0.35 + 0.65 * introTickFocus);
+        const titleEl = intro.querySelector("h1");
+        const titleRect = titleEl ? titleEl.getBoundingClientRect() : null;
+        // x under the title; fall back to viewport center if not measurable.
+        const introX = (titleRect && titleRect.width)
+          ? titleRect.left + titleRect.width / 2
+          : sx;
+        // Grow from the spine up to just below the title (the full gap), scaled
+        // by focus so it draws in. Cap so it never overshoots past the title.
+        const introGap = (titleRect && titleRect.height)
+          ? Math.max(0, spineY - titleRect.bottom - 8)
+          : (mobile ? 46 : 70);
+        const introLen = introGap * (0.35 + 0.65 * introTickFocus);
         placeLine(introLine, {
           side: "up",
           top: spineY,
           length: introLen,
           opacity: introTickFocus * 0.85,
-          sx,
+          sx: introX,
           orient: "vertical",
         });
-        placeNode(introNode, { top: spineY, opacity: introTickFocus, sx });
+        placeNode(introNode, { top: spineY, opacity: introTickFocus, sx: introX });
 
         let activeEntry = null;
         let activeEntryFocus = 0;
