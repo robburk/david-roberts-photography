@@ -1392,6 +1392,13 @@
           object-position: center;
         }
 
+        /* Show the entire video on mobile (it is 16:9 in a tall frame), letterboxed
+           on the page background. Photos stay edge-to-edge (object-fit: cover). */
+        .archive-horizontal .photo-frame video.entry-video {
+          object-fit: contain;
+          background: var(--paper);
+        }
+
         .archive-horizontal .copy,
         .archive-horizontal .entry:nth-child(even) .copy {
           grid-column: 1;
@@ -1637,19 +1644,6 @@
             <p class="micro">Linha de Costa</p>
             <h2>O lugar, a chegada e a forma do terreno.</h2>
             <p class="caption">A altitude que transforma um anúncio num destino.</p>
-          </div>
-        </article>
-        <article class="entry">
-          <figure class="photo-frame">
-            <img
-              src="assets/display/new-11.jpg"
-              alt="David Roberts fotografia aérea a grande altitude sobre mar aberto e céu"
-            />
-          </figure>
-          <div class="copy">
-            <p class="micro">Vídeo de Drone</p>
-            <h2>Movimento cinematográfico, do início ao fim.</h2>
-            <p class="caption">Clips para sites, redes sociais e campanhas.</p>
           </div>
         </article>
         <article class="entry is-video">

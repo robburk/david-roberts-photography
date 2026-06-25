@@ -1392,6 +1392,13 @@
           object-position: center;
         }
 
+        /* Show the entire video on mobile (it is 16:9 in a tall frame), letterboxed
+           on the page background. Photos stay edge-to-edge (object-fit: cover). */
+        .archive-horizontal .photo-frame video.entry-video {
+          object-fit: contain;
+          background: var(--paper);
+        }
+
         .archive-horizontal .copy,
         .archive-horizontal .entry:nth-child(even) .copy {
           grid-column: 1;
@@ -1636,19 +1643,6 @@
             <p class="micro">Coastline</p>
             <h2>Place, approach, and the shape of the land.</h2>
             <p class="caption">Elevation that turns a listing into a location.</p>
-          </div>
-        </article>
-        <article class="entry">
-          <figure class="photo-frame">
-            <img
-              src="assets/display/new-11.jpg"
-              alt="David Roberts high aerial photograph over open water and sky"
-            />
-          </figure>
-          <div class="copy">
-            <p class="micro">Drone Video</p>
-            <h2>Cinematic motion, start to finish.</h2>
-            <p class="caption">Clips for sites, social, and campaigns.</p>
           </div>
         </article>
         <article class="entry is-video">
